@@ -14,7 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      recommendations: {
+        Row: {
+          author_name: string
+          created_at: string
+          id: string
+          note: string
+          verdict: string
+          winery_id: string
+          wines_to_try: string | null
+        }
+        Insert: {
+          author_name: string
+          created_at?: string
+          id?: string
+          note: string
+          verdict: string
+          winery_id: string
+          wines_to_try?: string | null
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          note?: string
+          verdict?: string
+          winery_id?: string
+          wines_to_try?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_winery_id_fkey"
+            columns: ["winery_id"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regions: {
+        Row: {
+          center_lat: number
+          center_lng: number
+          country: string
+          created_at: string
+          default_zoom: number
+          id: string
+          name: string
+        }
+        Insert: {
+          center_lat: number
+          center_lng: number
+          country: string
+          created_at?: string
+          default_zoom?: number
+          id?: string
+          name: string
+        }
+        Update: {
+          center_lat?: number
+          center_lng?: number
+          country?: string
+          created_at?: string
+          default_zoom?: number
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      wineries: {
+        Row: {
+          address: string | null
+          appointment_required: boolean
+          created_at: string
+          id: string
+          languages: string[]
+          latitude: number
+          longitude: number
+          name: string
+          opening_days: string | null
+          photo_url: string | null
+          region_id: string
+          ships_abroad: boolean
+          tasting_fee: string | null
+        }
+        Insert: {
+          address?: string | null
+          appointment_required?: boolean
+          created_at?: string
+          id?: string
+          languages?: string[]
+          latitude: number
+          longitude: number
+          name: string
+          opening_days?: string | null
+          photo_url?: string | null
+          region_id: string
+          ships_abroad?: boolean
+          tasting_fee?: string | null
+        }
+        Update: {
+          address?: string | null
+          appointment_required?: boolean
+          created_at?: string
+          id?: string
+          languages?: string[]
+          latitude?: number
+          longitude?: number
+          name?: string
+          opening_days?: string | null
+          photo_url?: string | null
+          region_id?: string
+          ships_abroad?: boolean
+          tasting_fee?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wineries_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
