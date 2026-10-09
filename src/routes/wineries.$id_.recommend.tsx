@@ -3,6 +3,7 @@ import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wineryQuery } from "@/lib/wine";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/wineries/$id_/recommend")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(wineryQuery(params.id)),
@@ -56,27 +57,28 @@ function RecommendPage() {
   const field = "mt-2 w-full rounded-md border bg-card px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring";
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl px-5 pb-16 pt-6">
-      <Link to="/wineries/$id" params={{ id }} className="text-sm font-semibold text-primary">← {w?.name}</Link>
+    <main className="mx-auto min-h-dvh max-w-2xl px-5 pb-16 pt-6 sm:px-8 sm:pt-10 lg:pt-16">
+      <Link to="/wineries/$id" params={{ id }} className="inline-flex min-h-11 items-center break-words text-sm font-semibold text-primary">← {w?.name}</Link>
       <p className="eyebrow mt-8">A note for the next traveller</p>
-      <h1 className="mt-1 text-4xl font-medium italic">Was it worth it?</h1>
+      <h1 className="mt-1 text-3xl font-medium italic sm:text-4xl">Was it worth it?</h1>
 
       <form onSubmit={submit} className="mt-8 space-y-6">
         <div className="grid grid-cols-2 gap-3">
           {(["go", "skip"] as const).map((v) => (
-            <button
+            <Button
               key={v}
               type="button"
               onClick={() => setVerdict(v)}
               aria-pressed={verdict === v}
-              className={`rounded-lg border py-5 font-serif text-2xl transition ${
+              variant="outline"
+              className={`h-20 rounded-lg border font-serif text-2xl transition ${
                 verdict === v
                   ? v === "go" ? "border-go bg-go text-go-foreground" : "border-foreground bg-foreground text-background"
                   : "bg-card"
               }`}
             >
               {v === "go" ? "Go" : "Skip"}
-            </button>
+            </Button>
           ))}
         </div>
         <label className="block">
@@ -92,9 +94,9 @@ function RecommendPage() {
           <input className={field} value={wines} onChange={(e) => setWines(e.target.value)} maxLength={500} placeholder="e.g. Riesling Grand Cru Schlossberg 2019" />
         </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <button disabled={busy} className="w-full rounded-full bg-primary py-4 font-semibold text-primary-foreground disabled:opacity-60">
+        <Button disabled={busy} className="h-14 w-full font-semibold disabled:opacity-60">
           {busy ? "Saving…" : "Publish note"}
-        </button>
+        </Button>
       </form>
     </main>
   );

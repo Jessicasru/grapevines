@@ -11,3 +11,4 @@
 
 - All Mapbox logic lives in src/components/WineMap.tsx, with mapbox-gl dynamically imported so SSR never loads it.
 - Data reads go through queryOptions in src/lib/wine.ts so loaders and components share one cache.
+- Use stacked content by default and page-level grid layouts at large breakpoints; keep map resizing inside WineMap so viewport changes preserve the interactive canvas.
