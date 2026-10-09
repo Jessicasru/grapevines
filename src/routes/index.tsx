@@ -108,7 +108,7 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4 lg:p-2">
+      <header className="map-glass map-header-pill absolute left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow lg:p-2">
         <h1 className="sr-only">Cellar Door</h1>
         <label className="sr-only" htmlFor="region">Region</label>
         <div className="relative min-w-[9.5rem] lg:min-w-[15rem]">
@@ -126,8 +126,8 @@ function MapPage() {
         </div>
       </header>
 
-      <div className="map-carousel absolute inset-x-0 bottom-0 z-10 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mb-3 flex justify-center gap-2 px-4">
+      <div className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
+        <div className="pointer-events-auto mb-2 flex justify-center gap-2 px-4">
           <button
             type="button"
             onClick={() => scrollTrack(-1)}
@@ -166,7 +166,7 @@ function MapPage() {
           ref={trackRef}
           onScroll={onTrackScroll}
           aria-label="Wineries"
-          className="map-carousel-track flex gap-3 overflow-x-auto overscroll-x-contain pb-2 pt-1"
+          className="map-carousel-track pointer-events-auto flex gap-3 overflow-x-auto overscroll-x-contain"
         >
           {entries.map(({ w, km }, i) => (
             <li key={w.id} data-winery-id={w.id} className="map-card shrink-0">

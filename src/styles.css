@@ -70,6 +70,7 @@
   --ring: oklch(0.38 0.12 18);
   --map-pin: #6e1f2a;
   --map-pin-foreground: #f7f1e6;
+  --map-cluster: #ffffff;
 }
 
 @layer base {
@@ -92,7 +93,16 @@
 }
 
 /* Map-first layout: floating pill header, snapping card carousel. */
-.wine-map-page .mapboxgl-ctrl-top-right { top: 0.5rem; right: 0.25rem; }
+.map-header-pill { top: max(16px, env(safe-area-inset-top)); }
+/* Track pads 8px so card rings/shadows aren't clipped; card bottom lands 16px (or safe area) from the edge. */
+.map-carousel { padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) - 8px); }
+.map-carousel-track { padding-block: 8px; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); scroll-padding-inline: 16px; }
+.wine-map-page .mapboxgl-ctrl-top-right { display: none; }
+.wine-map-page .mapboxgl-ctrl-bottom-left, .wine-map-page .mapboxgl-ctrl-bottom-right { z-index: 20; }
+.wine-map-page .mapboxgl-ctrl-bottom-left { left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); }
+.wine-map-page .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl { margin: 0; }
+.wine-map-page .mapboxgl-ctrl-bottom-right { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
+.wine-map-page .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl { margin: 0; }
 .map-glass { background: color-mix(in oklab, var(--card) 88%, transparent); backdrop-filter: blur(12px); }
 .map-carousel-track { scroll-snap-type: x mandatory; scrollbar-width: none; }
 .map-carousel-track::-webkit-scrollbar { display: none; }

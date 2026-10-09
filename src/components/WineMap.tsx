@@ -35,7 +35,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       const desktop = map.getContainer().clientWidth >= 1024;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding({
-        top: 88,
+        top: 96,
         bottom: (carousel?.height ?? 220) + 40,
         left: desktop ? 64 : 32,
         right: desktop ? 96 : 64,
@@ -69,16 +69,6 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       });
       mapRef.current = map;
       resize();
-      const geo = new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: false,
-        showUserLocation: true,
-      });
-      map.addControl(geo, "top-right");
-      geo.on("geolocate", (e: GeolocationPosition) =>
-        latest.current.onLocate([e.coords.longitude, e.coords.latitude]),
-      );
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", () => {
         const m = map;
         if (!m || cancelled) return;
@@ -93,37 +83,59 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           clusterMaxZoom: 13,
           clusterRadius: 60,
         });
+        const white = styles.getPropertyValue("--map-cluster").trim() || "#ffffff";
+        const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
+        // No slot: these layers draw above every basemap label.
         m.addLayer({
-          id: "clusters", type: "circle", source: "wineries", slot: "top",
+          id: "clusters", type: "circle", source: "wineries",
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": burgundy,
-            "circle-radius": ["step", ["get", "point_count"], 16, 5, 19, 10, 22],
+            "circle-color": white,
+            "circle-radius": 14,
             "circle-stroke-width": 2,
-            "circle-stroke-color": paper,
+            "circle-stroke-color": burgundy,
           },
         });
         m.addLayer({
-          id: "cluster-count", type: "symbol", source: "wineries", slot: "top",
+          id: "cluster-count", type: "symbol", source: "wineries",
           filter: ["has", "point_count"],
           layout: {
             "text-field": ["to-string", ["get", "point_count"]],
+            "text-font": font,
             "text-size": 13,
             "text-allow-overlap": true,
             "text-ignore-placement": true,
           },
-          paint: { "text-color": paper },
+          paint: { "text-color": burgundy },
         });
         m.addLayer({
-          id: "winery", type: "symbol", source: "wineries", slot: "top",
+          id: "winery-shadow", type: "circle", source: "wineries",
           filter: ["!", ["has", "point_count"]],
-          layout: {
-            "icon-image": ["get", "pin"],
-            "icon-anchor": "bottom",
-            "icon-size": 0.72,
-            "icon-allow-overlap": true,
+          paint: { "circle-color": "#000000", "circle-opacity": 0.18, "circle-blur": 0.6, "circle-radius": 17, "circle-translate": [0, 2] },
+        });
+        m.addLayer({
+          id: "winery", type: "circle", source: "wineries",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": burgundy,
+            "circle-radius": 12,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": white,
           },
         });
+        m.addLayer({
+          id: "winery-number", type: "symbol", source: "wineries",
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "text-field": ["get", "n"],
+            "text-font": font,
+            "text-size": 12,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
+          paint: { "text-color": white },
+        });
+        void paper;
         m.on("click", "clusters", (e) => {
           const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as unknown as { geometry: { type: string; coordinates: [number, number] }; properties?: { cluster_id?: number } } | undefined;
           if (!feature || feature.geometry.type !== "Point") return;
@@ -162,45 +174,12 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
     const map = mapRef.current;
     const source = map?.getSource("wineries") as GeoJSONSource | undefined;
     if (!ready || !map || !source) return;
-    const styles = getComputedStyle(document.documentElement);
-    const burgundy = styles.getPropertyValue("--map-pin").trim();
-    const paper = styles.getPropertyValue("--map-pin-foreground").trim();
-    // Raster pins keep the number legible, without external icon/font requests.
-    for (let i = 0; i < wineries.length; i++) {
-      for (const active of [false, true]) {
-        const id = `pin-${i + 1}${active ? "-selected" : ""}`;
-        if (map.hasImage(id)) continue;
-        const canvas = document.createElement("canvas");
-        canvas.width = 96;
-        canvas.height = 120;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) continue;
-        ctx.scale(2, 2);
-        ctx.beginPath();
-        ctx.moveTo(24, 57);
-        ctx.bezierCurveTo(19, 48, 4, 35, 4, 23);
-        ctx.arc(24, 23, 20, Math.PI, 0);
-        ctx.bezierCurveTo(44, 35, 29, 48, 24, 57);
-        ctx.closePath();
-        ctx.fillStyle = burgundy;
-        ctx.fill();
-        ctx.strokeStyle = paper;
-        ctx.lineWidth = active ? 5 : 3;
-        ctx.stroke();
-        ctx.fillStyle = paper;
-        ctx.font = `bold 16px ${styles.getPropertyValue("--font-sans").trim()}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(i + 1), 24, 24);
-        map.addImage(id, ctx.getImageData(0, 0, 96, 120), { pixelRatio: 2 });
-      }
-    }
     source.setData({
       type: "FeatureCollection",
       features: wineries.map((w, i) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [w.longitude, w.latitude] },
-        properties: { id: w.id, pin: `pin-${i + 1}`, selectedPin: `pin-${i + 1}-selected` },
+        properties: { id: w.id, n: String(i + 1) },
       })),
     });
   }, [wineries, ready]);
@@ -224,17 +203,35 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    map.setLayoutProperty("winery", "icon-image", [
-      "case", ["==", ["get", "id"], selectedId ?? ""], ["get", "selectedPin"], ["get", "pin"],
-    ]);
-    map.setLayoutProperty("winery", "symbol-sort-key", ["case", ["==", ["get", "id"], selectedId ?? ""], 1, 0]);
+    const sel = selectedId ?? "";
+    const isSel = ["==", ["get", "id"], sel];
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const apply = (t: number) => {
+      const any = sel ? t : 0;
+      // 28px pin (r12 + 2px border) → 36px (r16 + 2px border) when selected; others fade to 60%.
+      map.setPaintProperty("winery", "circle-radius", ["case", isSel, 12 + 4 * t, 12] as never);
+      map.setPaintProperty("winery-shadow", "circle-radius", ["case", isSel, 17 + 4 * t, 17] as never);
+      for (const [layer, prop] of [["winery", "circle-opacity"], ["winery", "circle-stroke-opacity"], ["winery-number", "text-opacity"]] as const)
+        map.setPaintProperty(layer, prop, ["case", isSel, 1, 1 - 0.4 * any] as never);
+      map.setPaintProperty("winery-shadow", "circle-opacity", ["case", isSel, 0.18, 0.18 * (1 - 0.4 * any)] as never);
+      map.setLayoutProperty("winery-number", "text-size", ["case", isSel, 12 + 2 * t, 12] as never);
+    };
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = reduce ? 1 : Math.min(1, (now - start) / 220);
+      apply(1 - Math.pow(1 - p, 3));
+      if (p < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
     const winery = wineries.find((w) => w.id === selectedId);
     if (winery) map.flyTo({
       center: [winery.longitude, winery.latitude],
       zoom: Math.max(map.getZoom(), 14),
       speed: 1.1,
-      duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200,
+      duration: reduce ? 0 : 1200,
     });
+    return () => cancelAnimationFrame(frame);
   }, [selectedId, wineries, ready]);
 
   return <div ref={container} className="h-full w-full" />;
