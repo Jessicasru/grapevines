@@ -113,6 +113,16 @@
 .map-carousel-track::-webkit-scrollbar { display: none; }
 .map-card { scroll-snap-align: center; width: min(78vw, 320px); }
 .map-card-selected { background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
+.winery-detail {
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  height: calc(85dvh - max(16px, env(safe-area-inset-bottom)));
+}
+.detail-drag-handle { touch-action: none; cursor: grab; }
+@media (min-width: 1024px) {
+  .winery-detail { width: 420px; right: auto; top: 16px; bottom: 16px; height: auto; }
+}
 .map-carousel-track::before, .map-carousel-track::after { content: ""; flex: 0 0 calc(50% - min(39vw, 160px) - 0.75rem); }
 @media (min-width: 1024px) {
   .map-card { width: 400px; }
