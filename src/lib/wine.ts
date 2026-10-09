@@ -51,7 +51,7 @@ export const wineryQuery = (id: string) =>
       if (!UUID_RE.test(id)) return null;
       const { data, error } = await supabase
         .from("wineries")
-        .select("*, regions(name, country), recommendations(*, profiles(display_name, avatar_url))")
+        .select("*, regions(name, country), recommendations(*)")
         .eq("id", id)
         .order("created_at", { referencedTable: "recommendations", ascending: false })
         .maybeSingle();
