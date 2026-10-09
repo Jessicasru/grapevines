@@ -67,6 +67,10 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           : [7.35, 48.2],
         zoom: 8,
       });
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      const locate = new mapboxgl.GeolocateControl({ trackUserLocation: false, showUserLocation: true });
+      locate.on("geolocate", (e) => latest.current.onLocate([e.coords.longitude, e.coords.latitude]));
+      map.addControl(locate, "top-right");
       mapRef.current = map;
       resize();
       map.on("load", () => {
