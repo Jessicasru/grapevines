@@ -133,7 +133,7 @@ function MapPage() {
           {entries.map(({ w, km }, i) => (
             <li key={w.id} data-winery-id={w.id}>
                <Button variant="ghost" onClick={() => selectWinery(w.id)} aria-pressed={selectedId === w.id} className={`group grid h-auto w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 whitespace-normal rounded-none px-0 py-4 text-left ${selectedId === w.id ? "bg-secondary text-primary" : ""}`}>
-                <span className="shrink-0 font-serif text-lg italic text-muted-foreground">{i + 1}</span>
+                <span className="shrink-0 font-serif text-sm font-medium tabular-nums text-muted-foreground">{i + 1}</span>
                 <span className="min-w-0 break-words">
                    <span className="block font-serif text-lg group-hover:text-primary">{w.name}</span>
                   <span className="text-sm text-muted-foreground">{w.address}</span>
