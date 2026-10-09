@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, List, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, List, X } from "lucide-react";
 import { WineMap } from "@/components/WineMap";
 import {
   Drawer,
@@ -61,6 +61,13 @@ function MapPage() {
     card?.scrollIntoView({ inline: "center", block: "nearest", behavior: smooth ? "smooth" : "auto" });
   }, []);
 
+  const scrollTrack = useCallback((dir: 1 | -1) => {
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>("[data-winery-id]");
+    if (!track || !card) return;
+    track.scrollBy({ left: dir * (card.offsetWidth + 12), behavior: "smooth" });
+  }, []);
+
   // Pin tap (or sheet row) → scroll carousel to that card.
   useEffect(() => {
     if (selectedId) scrollToCard(selectedId);
@@ -101,21 +108,21 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4">
+      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4 lg:p-2">
         <h1 className="sr-only">Cellar Door</h1>
         <label className="sr-only" htmlFor="region">Region</label>
-        <div className="relative min-w-[9.5rem]">
+        <div className="relative min-w-[9.5rem] lg:min-w-[15rem]">
           <select
             id="region"
             value={regionId}
             onChange={(e) => { setRegionId(e.target.value); setMe(null); setSelectedId(null); }}
-            className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-4 lg:pr-10 lg:text-base"
           >
             {regions.map((r) => (
               <option key={r.id} value={r.id}>{r.name}, {r.country}</option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground lg:right-3.5 lg:size-5" />
         </div>
       </header>
 
@@ -123,19 +130,35 @@ function MapPage() {
         <div className="mb-3 flex justify-center gap-2 px-4">
           <button
             type="button"
-            onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
-            className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow"
+            onClick={() => scrollTrack(-1)}
+            aria-label="Previous winery"
+            className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
           >
-            <List className="size-4" /> {me ? "Closest to you" : `See all ${entries.length}`}
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
+            className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow lg:h-11 lg:px-5 lg:text-base"
+          >
+            <List className="size-4 lg:size-5" /> {me ? "Closest to you" : `See all ${entries.length}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollTrack(1)}
+            aria-label="Next winery"
+            className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
+          >
+            <ChevronRight className="size-5" />
           </button>
           {me && (
             <button
               type="button"
               onClick={() => setMe(null)}
               aria-label="Show region wineries"
-              className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow"
+              className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow lg:h-11 lg:w-11"
             >
-              <X className="size-4" />
+              <X className="size-4 lg:size-5" />
             </button>
           )}
         </div>
@@ -151,9 +174,9 @@ function MapPage() {
                 to="/wineries/$id"
                 params={{ id: w.id }}
                 aria-current={selectedId === w.id ? "true" : undefined}
-                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 ${selectedId === w.id ? "ring-2" : ""}`}
+                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "ring-2" : ""}`}
               >
-                <div className="relative w-24 shrink-0 bg-muted">
+                <div className="relative w-24 shrink-0 bg-muted lg:w-32">
                   {w.photo_url && <img src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
                   <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                 </div>
