@@ -39,6 +39,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-go: var(--go);
   --color-go-foreground: var(--go-foreground);
+  --color-tag: var(--tag);
+  --color-tag-foreground: var(--tag-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -46,12 +48,12 @@
 
 :root {
   --radius: 1rem;
-  --shadow-soft: 0 6px 24px -8px oklch(0.24 0.03 30 / 0.22), 0 1px 3px oklch(0.24 0.03 30 / 0.08);
+  --shadow-soft: 0 4px 16px rgba(60, 40, 30, 0.12);
   --background: oklch(0.975 0.012 80);
   --foreground: oklch(0.24 0.03 30);
-  --card: oklch(0.99 0.008 80);
+  --card: #FFFDF9;
   --card-foreground: oklch(0.24 0.03 30);
-  --popover: oklch(0.99 0.008 80);
+  --popover: #FFFDF9;
   --popover-foreground: oklch(0.24 0.03 30);
   --primary: oklch(0.38 0.12 18);
   --primary-foreground: oklch(0.97 0.015 80);
@@ -68,6 +70,8 @@
   --border: oklch(0.87 0.025 70);
   --input: oklch(0.87 0.025 70);
   --ring: oklch(0.38 0.12 18);
+  --tag: #F4EFE7;
+  --tag-foreground: #5C5048;
   --map-pin: #6e1f2a;
   --map-pin-foreground: #f7f1e6;
   --map-cluster: #ffffff;
@@ -104,10 +108,11 @@
 .wine-map-page .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl { margin: 0; }
 .wine-map-page .mapboxgl-ctrl-bottom-right { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
 .wine-map-page .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl { margin: 0; }
-.map-glass { background: color-mix(in oklab, var(--card) 88%, transparent); backdrop-filter: blur(12px); }
+.map-glass { background: var(--card); }
 .map-carousel-track { scroll-snap-type: x mandatory; scrollbar-width: none; }
 .map-carousel-track::-webkit-scrollbar { display: none; }
 .map-card { scroll-snap-align: center; width: min(78vw, 320px); }
+.map-card-selected { background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
 .map-carousel-track::before, .map-carousel-track::after { content: ""; flex: 0 0 calc(50% - min(39vw, 160px) - 0.75rem); }
 @media (min-width: 1024px) {
   .map-card { width: 400px; }
