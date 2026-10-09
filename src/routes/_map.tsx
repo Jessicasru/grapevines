@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, List, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, List, User as UserIcon, X } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { WineryDetail } from "@/components/WineryDetail";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { distanceKm, regionsQuery, wineriesQuery, type Winery } from "@/lib/wine";
+import { distanceKm, isRecommended, regionsQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
+import { Avatar, useAuth } from "@/lib/auth";
+import { AddWineryPanel, MyWineriesDrawer, SearchBox } from "@/components/MapExtras";
 
 export const Route = createFileRoute("/_map")({
   loader: ({ context }) =>
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/_map")({
   component: MapPage,
 });
 
-const village = (w: Winery) => w.address?.split(/\d{5}\s*/).pop()?.trim() || w.address;
+const village = (w: Winery) => villageOf(w);
 const SNAPS = [0.5, 1] as const;
 
 function MapPage() {
@@ -54,6 +56,13 @@ function MapPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
   const trackRef = useRef<HTMLOListElement>(null);
+  const { user, profile, requireAuth } = useAuth();
+  const [adding, setAdding] = useState<{ name: string } | null>(null);
+  const [picked, setPicked] = useState<[number, number] | null>(null);
+  const [mineOpen, setMineOpen] = useState(false);
+  const recommended = useMemo(() => allWineries.filter(isRecommended), [allWineries]);
+  const baseWineries = useMemo(() => allWineries.filter((w) => !isRecommended(w)), [allWineries]);
+  const goTo = (id: string, region: string) => { setMe(null); setRegionId(region); setAdding(null); openDetail(id); };
   const settleTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -67,13 +76,13 @@ function MapPage() {
   const region = regions.find((r) => r.id === regionId) ?? null;
   const entries = useMemo(() => {
     if (me) {
-      return allWineries
+      return recommended
         .map((w) => ({ w, km: distanceKm(me, [w.longitude, w.latitude]) as number | null }))
         .sort((a, b) => (a.km ?? 0) - (b.km ?? 0))
         .slice(0, 5);
     }
-    return allWineries.filter((w) => w.region_id === regionId).map((w) => ({ w, km: null as number | null }));
-  }, [me, allWineries, regionId]);
+    return recommended.filter((w) => w.region_id === regionId).map((w) => ({ w, km: null as number | null }));
+  }, [me, recommended, regionId]);
   const visibleWineries = useMemo(() => entries.map(({ w }) => w), [entries]);
 
   const scrollToCard = useCallback((id: string, smooth = true) => {
@@ -124,6 +133,10 @@ function MapPage() {
       <section aria-label="Winery map" className="absolute inset-0">
         <WineMap
           wineries={visibleWineries}
+          baseWineries={baseWineries}
+          picking={!!adding}
+          picked={picked}
+          onPick={setPicked}
           region={region}
           selectedId={selectedId}
           detailId={detailId}
@@ -132,10 +145,10 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass map-header-pill absolute left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow lg:p-2">
+      <header className="map-glass map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 rounded-full p-1.5 shadow lg:left-1/2 lg:right-auto lg:w-[40rem] lg:-translate-x-1/2 lg:gap-2 lg:p-2">
         <h1 className="sr-only">Cellar Door</h1>
         <label className="sr-only" htmlFor="region">Region</label>
-        <div className="relative min-w-[9.5rem] lg:min-w-[15rem]">
+        <div className="relative w-[8.5rem] shrink-0 lg:w-[14rem]">
           <select
             id="region"
             value={regionId}
@@ -148,9 +161,28 @@ function MapPage() {
           </select>
           <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground lg:right-3.5 lg:size-5" />
         </div>
+        <SearchBox
+          wineries={allWineries}
+          onPick={(w) => goTo(w.id, w.region_id)}
+          onAdd={(name) => requireAuth(() => { if (detailId) closeDetail(); setPicked(null); setAdding({ name }); })}
+        />
+        <button type="button" onClick={() => requireAuth(() => setMineOpen(true))}
+          aria-label={user ? "My wineries" : "Sign in"}
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
+          {user ? <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-9 text-sm lg:size-11" /> : <UserIcon className="size-4 lg:size-5" />}
+        </button>
       </header>
 
-      <motion.div animate={{ opacity: detailId ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={detailId ? true : undefined} aria-hidden={detailId ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
+      {adding && (
+        <div className="map-carousel-safe pointer-events-none absolute inset-x-0 bottom-0 z-20">
+          <AddWineryPanel initialName={adding.name} picked={picked} regions={regions}
+            onCancel={() => { setAdding(null); setPicked(null); }}
+            onCreated={(id) => { const region = picked ? regions[0]?.id : regionId; setAdding(null); setPicked(null); void region; openDetail(id); }} />
+        </div>
+      )}
+      <MyWineriesDrawer open={mineOpen} onOpenChange={setMineOpen} onPick={(id, region) => { setMineOpen(false); goTo(id, region); }} />
+
+      <motion.div animate={{ opacity: detailId || adding ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={detailId || adding ? true : undefined} aria-hidden={detailId || adding ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
         <div className="pointer-events-auto mb-2 flex justify-center gap-2 px-4">
           <Button variant="ghost"
             type="button"
