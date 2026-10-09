@@ -5,6 +5,7 @@ import type { Tables } from "@/integrations/supabase/types";
 export type Region = Tables<"regions">;
 export type Winery = Tables<"wineries">;
 export type Recommendation = Tables<"recommendations">;
+export type SaveStatus = "want_to_visit" | "been_here";
 
 export const regionsQuery = queryOptions({
   queryKey: ["regions"],
@@ -18,11 +19,27 @@ export const regionsQuery = queryOptions({
 export const wineriesQuery = queryOptions({
   queryKey: ["wineries"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("wineries").select("*").order("name");
+    const { data, error } = await supabase.from("wineries").select("*, recommendations(verdict)").order("name");
     if (error) throw error;
     return data;
   },
 });
+
+/** Featured wineries, or any with at least one public "Go", appear in the carousel with burgundy pins. */
+export function isRecommended(w: { featured: boolean; recommendations?: { verdict: string }[] | null }) {
+  return w.featured || !!w.recommendations?.some((r) => r.verdict === "go");
+}
+
+export const villageOf = (w: Pick<Winery, "village" | "address">) =>
+  w.village || w.address?.split(/\d{5}\s*/).pop()?.trim() || w.address || "";
+
+/** Case- and accent-insensitive name search. */
+export function searchWineries<T extends { name: string }>(list: T[], q: string, limit = 8) {
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const needle = norm(q.trim());
+  if (!needle) return [];
+  return list.filter((w) => norm(w.name).includes(needle)).slice(0, limit);
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -34,10 +51,24 @@ export const wineryQuery = (id: string) =>
       if (!UUID_RE.test(id)) return null;
       const { data, error } = await supabase
         .from("wineries")
-        .select("*, regions(name, country), recommendations(*)")
+        .select("*, regions(name, country), recommendations(*, profiles(display_name, avatar_url))")
         .eq("id", id)
         .order("created_at", { referencedTable: "recommendations", ascending: false })
         .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+export const savesQuery = (userId: string) =>
+  queryOptions({
+    queryKey: ["saves", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("saves")
+        .select("*, wineries(id, name, address, village, photo_url, region_id)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
