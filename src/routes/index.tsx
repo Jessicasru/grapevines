@@ -61,6 +61,13 @@ function MapPage() {
     card?.scrollIntoView({ inline: "center", block: "nearest", behavior: smooth ? "smooth" : "auto" });
   }, []);
 
+  const scrollTrack = useCallback((dir: 1 | -1) => {
+    const track = trackRef.current;
+    const card = track?.querySelector<HTMLElement>("[data-winery-id]");
+    if (!track || !card) return;
+    track.scrollBy({ left: dir * (card.offsetWidth + 12), behavior: "smooth" });
+  }, []);
+
   // Pin tap (or sheet row) → scroll carousel to that card.
   useEffect(() => {
     if (selectedId) scrollToCard(selectedId);
@@ -167,9 +174,9 @@ function MapPage() {
                 to="/wineries/$id"
                 params={{ id: w.id }}
                 aria-current={selectedId === w.id ? "true" : undefined}
-                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 ${selectedId === w.id ? "ring-2" : ""}`}
+                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "ring-2" : ""}`}
               >
-                <div className="relative w-24 shrink-0 bg-muted">
+                <div className="relative w-24 shrink-0 bg-muted lg:w-32">
                   {w.photo_url && <img src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
                   <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                 </div>
