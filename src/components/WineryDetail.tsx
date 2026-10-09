@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, usePresence, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { wineryQuery } from "@/lib/wine";
 import { detailSpring } from "@/lib/detail-camera";
@@ -18,6 +18,12 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 export function WineryDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const reduced = useReducedMotion();
+  const [present, safeToRemove] = usePresence();
+  useEffect(() => {
+    if (present) return;
+    const timer = window.setTimeout(() => safeToRemove?.(), reduced ? 150 : 400);
+    return () => window.clearTimeout(timer);
+  }, [present, safeToRemove, reduced]);
   const [desktop, setDesktop] = useState(false);
   const swipeStart = useRef<number | null>(null);
   useEffect(() => {
