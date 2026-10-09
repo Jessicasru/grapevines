@@ -28,7 +28,12 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
     if (!token || !container.current) return;
     let cancelled = false;
     let map: MapboxMap | undefined;
-    const resizeObserver = new ResizeObserver(() => map?.resize());
+    const resize = () => {
+      if (!map) return;
+      map.resize();
+      map.setPadding({ top: 0, bottom: 0, right: 0, left: map.getContainer().clientWidth >= 1024 ? 424 : 0 });
+    };
+    const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container.current);
     import("mapbox-gl").then(({ default: mapboxgl }) => {
       if (cancelled || !container.current) return;
@@ -40,6 +45,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
         zoom: region?.default_zoom ?? 8.5,
       });
       mapRef.current = map;
+      resize();
 
       const geo = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
