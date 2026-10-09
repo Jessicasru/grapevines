@@ -247,9 +247,11 @@ function MapPage() {
         </DrawerContent>
       </Drawer>
       <Outlet />
-      <AnimatePresence>
-        {detailId && <Suspense fallback={null}><WineryDetail key={detailId} id={detailId} onClose={closeDetail} /></Suspense>}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {detailId && <WineryDetail key={detailId} id={detailId} onClose={closeDetail} />}
+        </AnimatePresence>
+      </Suspense>
     </main>
     </LayoutGroup>
   );
