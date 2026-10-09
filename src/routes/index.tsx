@@ -174,7 +174,7 @@ function MapPage() {
                 to="/wineries/$id"
                 params={{ id: w.id }}
                 aria-current={selectedId === w.id ? "true" : undefined}
-                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "ring-2" : ""}`}
+                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "map-card-selected ring-2" : ""}`}
               >
                 <div className="relative w-24 shrink-0 bg-muted lg:w-32">
                   {w.photo_url && <img src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
@@ -203,7 +203,7 @@ function MapPage() {
         activeSnapPoint={snap}
         setActiveSnapPoint={setSnap}
       >
-        <DrawerContent className="mx-auto h-[96dvh] max-w-xl rounded-t-lg border-0 shadow">
+        <DrawerContent className="mx-auto h-[96dvh] max-w-xl rounded-t-lg border-0 bg-card shadow">
           <div className="px-5 pb-2 pt-3">
             <DrawerTitle className="text-lg">{me ? "Closest to you" : `${entries.length} wineries in ${region?.name ?? ""}`}</DrawerTitle>
             <DrawerDescription>Tap one to see it on the map.</DrawerDescription>
@@ -234,7 +234,7 @@ function MapPage() {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="truncate rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
+    <span className="truncate rounded-full bg-tag px-2 py-0.5 text-xs font-semibold text-tag-foreground">
       {children}
     </span>
   );
