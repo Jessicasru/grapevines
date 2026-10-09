@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, ArrowUpRight, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { WineMap } from "@/components/WineMap";
 import { distanceKm, regionsQuery, wineriesQuery } from "@/lib/wine";
 
@@ -29,6 +31,7 @@ function MapPage() {
   const [regionId, setRegionId] = useState(regions[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
+  const [listExpanded, setListExpanded] = useState(false);
 
   const region = regions.find((r) => r.id === regionId) ?? null;
   const wineries = useMemo(
@@ -46,11 +49,16 @@ function MapPage() {
   }, [me, allWineries]);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-7xl lg:px-8">
-      <header className="px-5 pb-5 pt-6 sm:px-8 sm:py-8 lg:px-0">
-        <p className="eyebrow">Cellar Door · Field notes</p>
-        <div className="mt-2 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-          <h1 className="min-w-0 text-3xl font-medium italic leading-tight sm:text-4xl">Where to taste</h1>
+    <main className="wine-map-page relative h-dvh w-full overflow-hidden">
+      <section aria-label="Winery map" className="absolute inset-0">
+        <WineMap wineries={wineries} region={region} onSelect={setSelectedId} onLocate={setMe} />
+      </section>
+
+      <header className="absolute left-3 right-16 top-3 z-10 rounded-lg border bg-card p-4 shadow-lg sm:left-5 sm:top-5 lg:right-auto lg:w-96 lg:p-5">
+        <p className="eyebrow">Wine trips · Field notes</p>
+        <div className="mt-1 min-w-0">
+          <h1 className="min-w-0 text-3xl font-medium leading-tight">Cellar Door</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Where to taste</p>
           <label className="sr-only" htmlFor="region">Region</label>
           <select
             id="region"
@@ -59,7 +67,7 @@ function MapPage() {
               setRegionId(e.target.value);
               setSelectedId(null);
             }}
-            className="h-11 w-full min-w-0 rounded-md border bg-card px-3 text-base font-semibold sm:w-auto sm:max-w-72"
+            className="mt-4 h-11 w-full min-w-0 rounded-md border bg-background px-3 text-base font-semibold"
           >
             {regions.map((r) => (
               <option key={r.id} value={r.id}>
@@ -70,14 +78,13 @@ function MapPage() {
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_25rem]">
-      <section className="relative h-[55svh] min-h-80 overflow-hidden border-y lg:sticky lg:top-6 lg:h-[calc(100dvh-10rem)] lg:min-h-[32rem] lg:border">
-        <WineMap wineries={wineries} region={region} onSelect={setSelectedId} onLocate={setMe} />
-        {selected && (
+      {selected && (
+        <div className="map-preview absolute inset-x-3 z-20 overflow-hidden rounded-lg border bg-card shadow-xl lg:inset-x-auto lg:bottom-8 lg:left-[calc(50%+12rem)] lg:w-96 lg:-translate-x-1/2">
+          <Button variant="ghost" size="icon" aria-label="Close winery preview" onClick={() => setSelectedId(null)} className="absolute right-1 top-1 z-10 h-11 w-11 bg-card"><X /></Button>
           <Link
             to="/wineries/$id"
             params={{ id: selected.id }}
-            className="absolute inset-x-3 bottom-3 flex overflow-hidden rounded-lg bg-card shadow-xl"
+            className="flex min-h-32 overflow-hidden pr-10"
           >
             {selected.photo_url && (
               <img src={selected.photo_url} alt="" className="w-20 shrink-0 object-cover sm:w-28" />
@@ -91,30 +98,36 @@ function MapPage() {
               <span className="text-sm font-semibold text-primary">Read the notes →</span>
             </div>
           </Link>
-        )}
-      </section>
+        </div>
+      )}
 
-       <section className="min-w-0 px-5 py-8 sm:px-8 lg:px-0 lg:py-0">
-        <p className="eyebrow">{me ? "Closest to you" : "In this region"}</p>
-        <h2 className="mt-1 text-2xl">
+      <aside aria-label="Winery directory" className={`map-directory absolute inset-x-3 bottom-3 z-10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-xl sm:inset-x-5 sm:bottom-5 lg:bottom-5 lg:left-5 lg:right-auto lg:top-56 lg:w-96 ${listExpanded ? "map-directory-expanded" : ""} ${selected ? "max-lg:hidden" : ""}`}>
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-4 lg:px-5">
+         <div className="min-w-0">
+         <p className="eyebrow">{me ? "Closest to you" : "In this region"}</p>
+         <h2 className="mt-1 break-words text-xl">
           {me ? "A short drive away" : `${wineries.length} cellars in ${region?.name ?? "—"}`}
         </h2>
-        <ol className="mt-5 divide-y border-y">
+         </div>
+         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 lg:hidden" aria-label={listExpanded ? "Collapse winery list" : "Expand winery list"} aria-expanded={listExpanded} onClick={() => setListExpanded(!listExpanded)}>{listExpanded ? <ChevronDown /> : <ChevronUp />}</Button>
+         {me && <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Show region wineries" onClick={() => setMe(null)}><X /></Button>}
+        </div>
+         <ol className="min-h-0 flex-1 divide-y overflow-y-auto overscroll-contain px-4 lg:px-5">
           {(me ? nearby : wineries.map((w) => ({ w, km: null as number | null }))).map(({ w, km }, i) => (
             <li key={w.id}>
-              <Link to="/wineries/$id" params={{ id: w.id }} className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-3 py-4">
+               <Link to="/wineries/$id" params={{ id: w.id }} className="group grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 py-4">
                 <span className="shrink-0 font-serif text-lg italic text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
                 <span className="min-w-0 break-words">
-                  <span className="block font-serif text-lg">{w.name}</span>
+                   <span className="block font-serif text-lg group-hover:text-primary">{w.name}</span>
                   <span className="text-sm text-muted-foreground">{w.address}</span>
                 </span>
                 {km != null && <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary">{km.toFixed(1)} km</span>}
+                 {km == null && <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />}
               </Link>
             </li>
           ))}
         </ol>
-      </section>
-      </div>
+      </aside>
     </main>
   );
 }
