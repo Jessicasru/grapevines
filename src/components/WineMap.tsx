@@ -223,6 +223,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       center: [winery.longitude, winery.latitude],
       zoom: Math.max(map.getZoom(), 14),
       speed: 1.1,
+      duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200,
     });
   }, [selectedId, wineries, ready]);
 
