@@ -3,6 +3,10 @@ import type { Map as MapboxMap, GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Region, Winery } from "@/lib/wine";
 
+// Public (pk.) token — safe in the browser. VITE_MAPBOX_TOKEN overrides it.
+const PUBLIC_TOKEN =
+  "pk.eyJ1IjoicnVsYW5kanMiLCJhIjoiY212MWJqaXNrMDJjMzJ6cXhhOXYxZmc3dSJ9.TQSoAXLi8KWxJegOIJCvtQ";
+
 type Props = {
   wineries: Winery[];
   region: Region | null;
@@ -15,7 +19,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
-  const token = import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined;
+  const token = (import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined) ?? PUBLIC_TOKEN;
   const cb = useRef({ onSelect, onLocate });
   cb.current = { onSelect, onLocate };
 
