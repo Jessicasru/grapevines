@@ -15,7 +15,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
-  const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+  const token = import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined;
   const cb = useRef({ onSelect, onLocate });
   cb.current = { onSelect, onLocate };
 
@@ -89,16 +89,16 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
         });
 
         m.on("click", "clusters", (e) => {
-          const f = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0];
+          const f = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as any;
           if (!f) return;
           const src = m.getSource("wineries") as GeoJSONSource;
           src.getClusterExpansionZoom(f.properties!.cluster_id, (err, zoom) => {
             if (err || zoom == null) return;
-            m.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+            m.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
           });
         });
         m.on("click", "winery", (e) => {
-          const f = e.features?.[0];
+          const f = e.features?.[0] as any;
           if (f) cb.current.onSelect(String(f.properties!.id));
         });
         m.on("click", (e) => {
