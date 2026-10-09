@@ -94,7 +94,7 @@
 /* Map-first layout: floating pill header, snapping card carousel. */
 .wine-map-page .mapboxgl-ctrl-top-right { top: 0.5rem; right: 0.25rem; }
 .map-glass { background: color-mix(in oklab, var(--card) 88%, transparent); backdrop-filter: blur(12px); }
-.map-carousel-track { scroll-snap-type: x mandatory; scrollbar-width: none; scroll-padding-inline: 50%; }
+.map-carousel-track { scroll-snap-type: x mandatory; scrollbar-width: none; }
 .map-carousel-track::-webkit-scrollbar { display: none; }
 .map-card { scroll-snap-align: center; width: min(78vw, 320px); }
 .map-carousel-track::before, .map-carousel-track::after { content: ""; flex: 0 0 calc(50% - min(39vw, 160px) - 0.75rem); }
