@@ -1,3 +1,3 @@
-- [ ] Quiet Mapbox Standard styling and numbered clustered pins.
-- [ ] Link winery selection between map, list, and preview; fit region bounds.
-- [ ] Remove separate Near me button, retain built-in location control, and verify interactions.
+- [x] Quiet Mapbox Standard styling and numbered clustered pins.
+- [x] Link winery selection between map, list, and preview; fit region bounds.
+- [x] Remove separate Near me button, retain built-in location control, and verify interactions.
