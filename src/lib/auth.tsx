@@ -214,7 +214,7 @@ function ProfileDialog({ open, required, user, profile, onDone }: { open: boolea
   );
 }
 
-export function Avatar({ name, url, className = "" }: { name?: string | null; url?: string | null; className?: string }) {
+export function Avatar({ name, url, className = "" }: { name?: string | null | undefined; url?: string | null | undefined; className?: string }) {
   return url ? (
     <img src={url} alt="" referrerPolicy="no-referrer" className={`shrink-0 rounded-full object-cover ${className}`} />
   ) : (

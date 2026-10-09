@@ -68,7 +68,7 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
     qc.invalidateQueries({ queryKey: ["wineries"] }),
     qc.invalidateQueries({ queryKey: ["saves"] }),
   ]);
-  const fail = () => toast.error("Something went wrong. Please try again.");
+  const fail = () => { toast.error("Something went wrong. Please try again."); };
 
   const toggleWant = () => requireAuth(async () => {
     const uid = await currentUserId();
@@ -77,7 +77,7 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
     const { error } = isWanted
       ? await supabase.from("saves").delete().match({ user_id: uid, winery_id: id, status: "want_to_visit" })
       : await supabase.from("saves").insert({ user_id: uid, winery_id: id, status: "want_to_visit" });
-    if (error) return fail();
+    if (error) { fail(); return; }
     toast.success(isWanted ? "Removed from Want to visit" : "Saved to Want to visit");
     void refresh();
   });
@@ -99,7 +99,7 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
         });
     if (!error) await supabase.from("saves").upsert({ user_id: uid, winery_id: id, status: "been_here" }, { onConflict: "user_id,winery_id,status", ignoreDuplicates: true });
     setBusy(false);
-    if (error) return fail();
+    if (error) { fail(); return; }
     await refresh();
     if (!mine) { setNote(""); setWines(""); setStep("details"); }
   };
@@ -112,7 +112,7 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
       .update({ note: note.trim().slice(0, 2000), wines_to_try: wines.trim().slice(0, 500) || null })
       .eq("id", mine.id);
     setBusy(false);
-    if (error) return fail();
+    if (error) { fail(); return; }
     setStep(null);
     toast.success("Recommendation saved");
     void refresh();
@@ -122,7 +122,7 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
     if (!mine || !window.confirm("Delete your recommendation?")) return;
     const uid = await currentUserId();
     const { error } = await supabase.from("recommendations").delete().eq("id", mine.id);
-    if (error) return fail();
+    if (error) { fail(); return; }
     if (uid) await supabase.from("saves").delete().match({ user_id: uid, winery_id: id, status: "been_here" });
     setStep(null);
     toast.success("Recommendation deleted");
