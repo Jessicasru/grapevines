@@ -115,7 +115,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           },
         });
         m.on("click", "clusters", (e) => {
-          const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0];
+          const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as unknown as { geometry: { type: string; coordinates: [number, number] }; properties?: { cluster_id?: number } } | undefined;
           if (!feature || feature.geometry.type !== "Point") return;
           const coordinates = feature.geometry.coordinates as [number, number];
           const source = m.getSource("wineries") as GeoJSONSource;
@@ -124,7 +124,8 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           });
         });
         m.on("click", "winery", (e) => {
-          const id = e.features?.[0]?.properties?.id;
+          const feature = e.features?.[0] as unknown as { properties?: { id?: string } } | undefined;
+          const id = feature?.properties?.id;
           if (id) latest.current.onSelect(String(id));
         });
         m.on("click", (e) => {
@@ -199,7 +200,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
     if (!ready || !map || !region || fittedRegion.current === region.id) return;
     fittedRegion.current = region.id;
     const points = wineries.filter((w) => w.region_id === region.id);
-    const coordinates = points.length
+    const coordinates: [number, number][] = points.length
       ? points.map((w) => [w.longitude, w.latitude])
       : [[region.center_lng, region.center_lat]];
     const lngs = coordinates.map((p) => p[0]);
