@@ -151,10 +151,6 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
           const id = feature?.properties?.id;
           if (id) latest.current.onSelect(String(id));
         });
-        m.on("click", (e) => {
-          if (!m.queryRenderedFeatures(e.point, { layers: ["winery", "clusters"] }).length)
-            latest.current.onSelect(null);
-        });
         for (const layer of ["clusters", "winery"]) {
           m.on("mouseenter", layer, () => (m.getCanvas().style.cursor = "pointer"));
           m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
@@ -271,5 +267,13 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
     return () => observer.disconnect();
   }, [detailId, wineries, ready]);
 
-  return <div ref={container} className="h-full w-full" />;
+  return <div ref={container} className="h-full w-full" onClick={(event) => {
+    if (!(event.target instanceof HTMLCanvasElement)) return;
+    const map = mapRef.current;
+    const rect = container.current?.getBoundingClientRect();
+    if (!map || !rect) return;
+    const layers = ["winery", "clusters"].filter((layer) => map.getLayer(layer));
+    const hits = layers.length ? map.queryRenderedFeatures([event.clientX - rect.left, event.clientY - rect.top], { layers }) : [];
+    if (!hits.length) latest.current.onSelect(null);
+  }} />;
 }
