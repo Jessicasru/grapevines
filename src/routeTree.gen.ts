@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MapRouteImport } from './routes/_map'
+import { Route as MapIndexRouteImport } from './routes/_map.index'
 import { Route as MapWineriesIdRouteImport } from './routes/_map.wineries.$id'
 import { Route as WineriesIdRecommendRouteImport } from './routes/wineries.$id_.recommend'
 
 const MapRoute = MapRouteImport.update({
   id: '/_map',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MapIndexRoute = MapIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MapRoute,
 } as any)
 const MapWineriesIdRoute = MapWineriesIdRouteImport.update({
   id: '/wineries/$id',
@@ -29,18 +35,19 @@ const WineriesIdRecommendRoute = WineriesIdRecommendRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof MapRouteWithChildren
+  '/': typeof MapIndexRoute
   '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof MapRouteWithChildren
+  '/': typeof MapIndexRoute
   '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_map': typeof MapRouteWithChildren
+  '/_map/': typeof MapIndexRoute
   '/_map/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id_/recommend': typeof WineriesIdRecommendRoute
 }
@@ -49,7 +56,12 @@ export interface FileRouteTypes {
   fullPaths: '/' | '/wineries/$id' | '/wineries/$id/recommend'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/wineries/$id' | '/wineries/$id/recommend'
-  id: '__root__' | '/_map' | '/_map/wineries/$id' | '/wineries/$id_/recommend'
+  id:
+    | '__root__'
+    | '/_map'
+    | '/_map/'
+    | '/_map/wineries/$id'
+    | '/wineries/$id_/recommend'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -65,6 +77,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_map/': {
+      id: '/_map/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof MapIndexRouteImport
+      parentRoute: typeof MapRoute
     }
     '/_map/wineries/$id': {
       id: '/_map/wineries/$id'
@@ -84,10 +103,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface MapRouteChildren {
+  MapIndexRoute: typeof MapIndexRoute
   MapWineriesIdRoute: typeof MapWineriesIdRoute
 }
 
 const MapRouteChildren: MapRouteChildren = {
+  MapIndexRoute: MapIndexRoute,
   MapWineriesIdRoute: MapWineriesIdRoute,
 }
 
