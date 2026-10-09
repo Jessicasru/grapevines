@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Region, Winery } from "@/lib/wine";
+import { Button } from "@/components/ui/button";
 
 // Public (pk.) token — safe in the browser. VITE_MAPBOX_TOKEN overrides it.
 const PUBLIC_TOKEN =
@@ -27,6 +28,8 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
     if (!token || !container.current) return;
     let cancelled = false;
     let map: MapboxMap | undefined;
+    const resizeObserver = new ResizeObserver(() => map?.resize());
+    resizeObserver.observe(container.current);
     import("mapbox-gl").then(({ default: mapboxgl }) => {
       if (cancelled || !container.current) return;
       mapboxgl.accessToken = token;
@@ -51,7 +54,8 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
 
       map.on("load", () => {
-        const m = map!;
+        const m = map;
+        if (!m) return;
         m.addSource("wineries", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
@@ -96,14 +100,14 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
           const f = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as any;
           if (!f) return;
           const src = m.getSource("wineries") as GeoJSONSource;
-          src.getClusterExpansionZoom(f.properties!.cluster_id, (err, zoom) => {
+          src.getClusterExpansionZoom(f.properties?.cluster_id, (err, zoom) => {
             if (err || zoom == null) return;
             m.easeTo({ center: f.geometry.coordinates as [number, number], zoom });
           });
         });
         m.on("click", "winery", (e) => {
           const f = e.features?.[0] as any;
-          if (f) cb.current.onSelect(String(f.properties!.id));
+          if (f?.properties?.id) cb.current.onSelect(String(f.properties.id));
         });
         m.on("click", (e) => {
           const hits = m.queryRenderedFeatures(e.point, { layers: ["winery", "clusters"] });
@@ -118,6 +122,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
     });
     return () => {
       cancelled = true;
+      resizeObserver.disconnect();
       map?.remove();
       mapRef.current = null;
     };
@@ -167,13 +172,14 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
   return (
     <div className="relative h-full w-full">
       <div ref={container} className="h-full w-full" />
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onClick={locate}
-        className="absolute left-3 top-3 rounded-full bg-card px-4 py-2 text-sm font-semibold text-primary shadow-md"
+        className="absolute left-3 top-3 h-11 bg-card px-4 text-sm font-semibold text-primary shadow-md"
       >
         ◎ Near me
-      </button>
+      </Button>
     </div>
   );
 }
