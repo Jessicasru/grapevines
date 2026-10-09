@@ -24,10 +24,14 @@ export const wineriesQuery = queryOptions({
   },
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const wineryQuery = (id: string) =>
   queryOptions({
     queryKey: ["winery", id],
     queryFn: async () => {
+      // Malformed ids (e.g. /wineries/1) are a lookup miss, not a crash.
+      if (!UUID_RE.test(id)) return null;
       const { data, error } = await supabase
         .from("wineries")
         .select("*, regions(name, country), recommendations(*)")
