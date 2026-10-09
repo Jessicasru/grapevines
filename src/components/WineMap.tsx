@@ -50,18 +50,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       mapboxgl.accessToken = token;
       map = new mapboxgl.Map({
         container: container.current,
-        style: "mapbox://styles/mapbox/standard",
-        config: { basemap: {
-          theme: "monochrome",
-          lightPreset: "day",
-          show3dObjects: false,
-          showLandmarkIcons: false,
-          showPedestrianRoads: false,
-          showRoadLabels: false,
-          showTransitLabels: false,
-          showPointOfInterestLabels: false,
-          showPlaceLabels: true,
-        } },
+        style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg",
         center: latest.current.region
           ? [latest.current.region.center_lng, latest.current.region.center_lat]
           : [7.35, 48.2],
