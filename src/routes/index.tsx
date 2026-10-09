@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, List, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, List, X } from "lucide-react";
 import { WineMap } from "@/components/WineMap";
 import {
   Drawer,
@@ -123,19 +123,35 @@ function MapPage() {
         <div className="mb-3 flex justify-center gap-2 px-4">
           <button
             type="button"
-            onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
-            className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow"
+            onClick={() => scrollTrack(-1)}
+            aria-label="Previous winery"
+            className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
           >
-            <List className="size-4" /> {me ? "Closest to you" : `See all ${entries.length}`}
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
+            className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow lg:h-11 lg:px-5 lg:text-base"
+          >
+            <List className="size-4 lg:size-5" /> {me ? "Closest to you" : `See all ${entries.length}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollTrack(1)}
+            aria-label="Next winery"
+            className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
+          >
+            <ChevronRight className="size-5" />
           </button>
           {me && (
             <button
               type="button"
               onClick={() => setMe(null)}
               aria-label="Show region wineries"
-              className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow"
+              className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow lg:h-11 lg:w-11"
             >
-              <X className="size-4" />
+              <X className="size-4 lg:size-5" />
             </button>
           )}
         </div>
