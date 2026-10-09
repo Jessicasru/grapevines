@@ -200,8 +200,8 @@ function MapPage() {
                 aria-current={selectedId === w.id ? "true" : undefined}
                 className={`w-full whitespace-normal p-0 text-left hover:bg-card flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "map-card-selected ring-2" : ""}`}
               >
-                <div className="relative w-24 shrink-0 bg-muted lg:w-32">
-                  {w.photo_url && <motion.img {...(reduced ? {} : { layoutId: `photo-${w.id}` })} transition={detailSpring} src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                <div className="relative h-full w-24 shrink-0 self-stretch bg-muted lg:w-32">
+                  {w.photo_url && <motion.img {...(reduced ? {} : { layoutId: `photo-${w.id}` })} transition={detailSpring} src={w.photo_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />}
                   <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3">
