@@ -141,7 +141,7 @@ function MapPage() {
             onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
             className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow lg:h-11 lg:px-5 lg:text-base"
           >
-            <List className="size-4 lg:size-5" /> {me ? "Closest to you" : `See all ${entries.length}`}
+            <List className="size-4 lg:size-5" /> {me ? "Closest to you" : "See all"}
           </button>
           <button
             type="button"
