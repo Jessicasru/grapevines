@@ -222,12 +222,12 @@ export function WineryDetail({ id, closing, onClose }: { id: string; closing: bo
           </div>
           <ul className="divide-y">
             {recs.map((r) => {
-              const name = r.profiles?.display_name ?? r.author_name;
+              const name = r.author_name;
               const own = !!user && r.user_id === user.id;
               return (
                 <li key={r.id} className="break-words py-5">
                   <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
-                    <Avatar name={name} url={r.profiles?.avatar_url} className="size-9 text-sm" />
+                    <Avatar name={name} className="size-9 text-sm" />
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{name}</p>
                       <p className="text-xs text-muted-foreground">{dateFmt.format(new Date(r.created_at))}</p>
