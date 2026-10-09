@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { wineryQuery } from "@/lib/wine";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/wineries/$id")({
+export const Route = createFileRoute("/_map/wineries/$id")({
   loader: async ({ context, params }) => {
     const w = await context.queryClient.ensureQueryData(wineryQuery(params.id));
     if (!w) throw notFound();

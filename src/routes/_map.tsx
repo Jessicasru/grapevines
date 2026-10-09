@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/drawer";
 import { distanceKm, regionsQuery, wineriesQuery, type Winery } from "@/lib/wine";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_map")({
   head: () => ({
     meta: [
       { title: "Cellar Door — Wine trip recommendations" },
