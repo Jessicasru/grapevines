@@ -1,4 +1,6 @@
 - [x] Quiet Mapbox Standard styling and numbered clustered pins.
 - [x] Link winery selection between map, list, and preview; fit region bounds.
 - [x] Remove separate Near me button, retain built-in location control, and verify interactions.
+- [x] Open shareable winery details over a persistent map with shared photo/name/tag transitions.
+- [x] Restore the exact camera on close; verify desktop, mobile, direct links, and reduced motion.
 - [x] Restore consistently burgundy, proportionate pins and verify zoomed-out cluster counts and expansion.

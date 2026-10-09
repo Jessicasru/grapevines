@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Region, Winery } from "@/lib/wine";
+import { detailCamera } from "@/lib/detail-camera";
 
 // Public (pk.) token — safe in the browser. VITE_MAPBOX_TOKEN overrides it.
 const PUBLIC_TOKEN =
@@ -11,12 +12,13 @@ type Props = {
   wineries: Winery[];
   region: Region | null;
   selectedId: string | null;
+  detailId: string | null;
   onSelect: (id: string | null) => void;
   onLocate: (coords: [number, number]) => void;
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Props) {
+export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -24,6 +26,11 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
   const latest = useRef({ wineries, region, onSelect, onLocate });
   latest.current = { wineries, region, onSelect, onLocate };
   const fittedRegion = useRef<string | null>(null);
+  const previousCamera = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> } | null>(null);
+  const activeDetail = useRef<string | null>(null);
+  const restoring = useRef(false);
+  const detailRef = useRef(detailId);
+  detailRef.current = detailId;
 
   useEffect(() => {
     if (!token || !container.current) return;
@@ -32,6 +39,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
     const resize = () => {
       if (!map) return;
       map.resize();
+      if (detailRef.current || restoring.current) return;
       const desktop = map.getContainer().clientWidth >= 1024;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding({
@@ -143,10 +151,6 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           const id = feature?.properties?.id;
           if (id) latest.current.onSelect(String(id));
         });
-        m.on("click", (e) => {
-          if (!m.queryRenderedFeatures(e.point, { layers: ["winery", "clusters"] }).length)
-            latest.current.onSelect(null);
-        });
         for (const layer of ["clusters", "winery"]) {
           m.on("mouseenter", layer, () => (m.getCanvas().style.cursor = "pointer"));
           m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
@@ -218,14 +222,58 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
     };
     frame = requestAnimationFrame(tick);
     const winery = wineries.find((w) => w.id === selectedId);
-    if (winery) map.flyTo({
+     if (winery && !detailId && !previousCamera.current && !restoring.current) map.flyTo({
       center: [winery.longitude, winery.latitude],
       zoom: Math.max(map.getZoom(), 14),
       speed: 1.1,
       duration: reduce ? 0 : 1200,
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedId, wineries, ready]);
+   }, [selectedId, wineries, ready]);
 
-  return <div ref={container} className="h-full w-full" />;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!detailId) {
+      const camera = previousCamera.current;
+      if (!camera) return;
+      activeDetail.current = null;
+      restoring.current = true;
+      map.stop();
+      map.flyTo({ ...camera, duration: reduced ? 0 : 350 });
+      previousCamera.current = null;
+      const finish = () => { restoring.current = false; };
+      map.once("moveend", finish);
+      const timeout = window.setTimeout(finish, 400);
+      return () => { window.clearTimeout(timeout); map.off("moveend", finish); restoring.current = false; };
+    }
+    const winery = wineries.find((w) => w.id === detailId);
+    if (!winery || activeDetail.current === detailId) return;
+    map.stop();
+    if (!previousCamera.current) {
+      const center = map.getCenter();
+      previousCamera.current = { center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch(), padding: map.getPadding() };
+    }
+    activeDetail.current = detailId;
+    const focus = () => {
+      const container = map.getContainer();
+      const camera = detailCamera(container.clientWidth, container.clientHeight, previousCamera.current?.zoom ?? map.getZoom());
+      map.flyTo({ center: [winery.longitude, winery.latitude], ...camera, duration: reduced ? 0 : 350 });
+    };
+    focus();
+    const observer = new ResizeObserver(focus);
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [detailId, wineries, ready]);
+
+  return <div ref={container} className="h-full w-full" onClick={(event) => {
+    if (!(event.target instanceof HTMLCanvasElement)) return;
+    const map = mapRef.current;
+    const rect = container.current?.getBoundingClientRect();
+    if (!map || !rect) return;
+    const layers = ["winery", "clusters"].filter((layer) => map.getLayer(layer));
+    const hits = layers.length ? map.queryRenderedFeatures([event.clientX - rect.left, event.clientY - rect.top], { layers }) : [];
+    if (!hits.length) latest.current.onSelect(null);
+  }} />;
 }

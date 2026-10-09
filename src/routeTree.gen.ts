@@ -9,19 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as WineriesIdRouteImport } from './routes/wineries.$id'
+import { Route as MapRouteImport } from './routes/_map'
+import { Route as MapIndexRouteImport } from './routes/_map.index'
+import { Route as MapWineriesIdRouteImport } from './routes/_map.wineries.$id'
 import { Route as WineriesIdRecommendRouteImport } from './routes/wineries.$id_.recommend'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const MapRoute = MapRouteImport.update({
+  id: '/_map',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WineriesIdRoute = WineriesIdRouteImport.update({
+const MapIndexRoute = MapIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MapRoute,
+} as any)
+const MapWineriesIdRoute = MapWineriesIdRouteImport.update({
   id: '/wineries/$id',
   path: '/wineries/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => MapRoute,
 } as any)
 const WineriesIdRecommendRoute = WineriesIdRecommendRouteImport.update({
   id: '/wineries/$id_/recommend',
@@ -30,19 +35,20 @@ const WineriesIdRecommendRoute = WineriesIdRecommendRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/wineries/$id': typeof WineriesIdRoute
+  '/': typeof MapIndexRoute
+  '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/wineries/$id': typeof WineriesIdRoute
+  '/': typeof MapIndexRoute
+  '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/wineries/$id': typeof WineriesIdRoute
+  '/_map': typeof MapRouteWithChildren
+  '/_map/': typeof MapIndexRoute
+  '/_map/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id_/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRouteTypes {
@@ -50,30 +56,41 @@ export interface FileRouteTypes {
   fullPaths: '/' | '/wineries/$id' | '/wineries/$id/recommend'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/wineries/$id' | '/wineries/$id/recommend'
-  id: '__root__' | '/' | '/wineries/$id' | '/wineries/$id_/recommend'
+  id:
+    | '__root__'
+    | '/_map'
+    | '/_map/'
+    | '/_map/wineries/$id'
+    | '/wineries/$id_/recommend'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  WineriesIdRoute: typeof WineriesIdRoute
+  MapRoute: typeof MapRouteWithChildren
   WineriesIdRecommendRoute: typeof WineriesIdRecommendRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_map': {
+      id: '/_map'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/wineries/$id': {
-      id: '/wineries/$id'
+    '/_map/': {
+      id: '/_map/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof MapIndexRouteImport
+      parentRoute: typeof MapRoute
+    }
+    '/_map/wineries/$id': {
+      id: '/_map/wineries/$id'
       path: '/wineries/$id'
       fullPath: '/wineries/$id'
-      preLoaderRoute: typeof WineriesIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof MapWineriesIdRouteImport
+      parentRoute: typeof MapRoute
     }
     '/wineries/$id_/recommend': {
       id: '/wineries/$id_/recommend'
@@ -85,9 +102,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MapRouteChildren {
+  MapIndexRoute: typeof MapIndexRoute
+  MapWineriesIdRoute: typeof MapWineriesIdRoute
+}
+
+const MapRouteChildren: MapRouteChildren = {
+  MapIndexRoute: MapIndexRoute,
+  MapWineriesIdRoute: MapWineriesIdRoute,
+}
+
+const MapRouteWithChildren = MapRoute._addFileChildren(MapRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  WineriesIdRoute: WineriesIdRoute,
+  MapRoute: MapRouteWithChildren,
   WineriesIdRecommendRoute: WineriesIdRecommendRoute,
 }
 export const routeTree = rootRouteImport

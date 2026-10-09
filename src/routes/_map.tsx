@@ -1,7 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, List, X } from "lucide-react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import { WineryDetail } from "@/components/WineryDetail";
+import { Button } from "@/components/ui/button";
+import { detailSpring } from "@/lib/detail-camera";
 import { WineMap } from "@/components/WineMap";
 import {
   Drawer,
@@ -11,17 +15,7 @@ import {
 } from "@/components/ui/drawer";
 import { distanceKm, regionsQuery, wineriesQuery, type Winery } from "@/lib/wine";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Cellar Door — Wine trip recommendations" },
-      { name: "description", content: "Find wineries worth the detour, with honest notes from fellow travellers." },
-      { property: "og:title", content: "Cellar Door — Wine trip recommendations" },
-      { property: "og:description", content: "Find wineries worth the detour, with honest notes from fellow travellers." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+export const Route = createFileRoute("/_map")({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(regionsQuery),
@@ -36,6 +30,24 @@ const SNAPS = [0.5, 1] as const;
 function MapPage() {
   const { data: regions } = useSuspenseQuery(regionsQuery);
   const { data: allWineries } = useSuspenseQuery(wineriesQuery);
+  const navigate = useNavigate();
+  const reduced = useReducedMotion();
+  const detailId = useRouterState({ select: (state) => {
+    const match = state.matches.find((m) => m.routeId === "/_map/wineries/$id");
+    return match && "id" in match.params ? String(match.params.id) : null;
+  } });
+  const closeDetail = useCallback(() => { void navigate({ to: "/", resetScroll: false }); }, [navigate]);
+  const [overlayId, setOverlayId] = useState<string | null>(detailId);
+  useEffect(() => {
+    if (detailId) { setOverlayId(detailId); return; }
+    const timer = window.setTimeout(() => setOverlayId(null), reduced ? 150 : 400);
+    return () => window.clearTimeout(timer);
+  }, [detailId, reduced]);
+  const openDetail = (id: string) => {
+    window.clearTimeout(settleTimer.current);
+    setSheetOpen(false);
+    void navigate({ to: "/wineries/$id", params: { id }, resetScroll: false });
+  };
   const [regionId, setRegionId] = useState(regions[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
@@ -43,6 +55,14 @@ function MapPage() {
   const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
   const trackRef = useRef<HTMLOListElement>(null);
   const settleTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    window.clearTimeout(settleTimer.current);
+    if (!detailId) return;
+    const winery = allWineries.find((w) => w.id === detailId);
+    if (winery) { setRegionId(winery.region_id); setSelectedId(detailId); }
+  }, [detailId, allWineries]);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
   const region = regions.find((r) => r.id === regionId) ?? null;
   const entries = useMemo(() => {
@@ -75,6 +95,7 @@ function MapPage() {
 
   // Swipe settles on a card → select it (flies map to its pin).
   const onTrackScroll = () => {
+    if (detailId) return;
     window.clearTimeout(settleTimer.current);
     settleTimer.current = window.setTimeout(() => {
       const track = trackRef.current;
@@ -84,7 +105,8 @@ function MapPage() {
       track.querySelectorAll<HTMLElement>("[data-winery-id]").forEach((el) => {
         const r = el.getBoundingClientRect();
         const d = Math.abs(r.left + r.width / 2 - mid);
-        if (!best || d < best.d) best = { id: el.dataset['wineryId']!, d };
+        const id = el.dataset["wineryId"];
+        if (id && (!best || d < best.d)) best = { id, d };
       });
       const found = best as { id: string; d: number } | null;
       if (found && found.id !== selectedId) setSelectedId(found.id);
@@ -97,13 +119,15 @@ function MapPage() {
   };
 
   return (
+    <LayoutGroup id="winery-map">
     <main className="wine-map-page relative h-dvh w-full overflow-hidden">
       <section aria-label="Winery map" className="absolute inset-0">
         <WineMap
           wineries={visibleWineries}
           region={region}
           selectedId={selectedId}
-          onSelect={(id) => id && setSelectedId(id)}
+          detailId={detailId}
+          onSelect={(id) => { if (id) openDetail(id); else if (detailId) closeDetail(); }}
           onLocate={(coords) => { setMe(coords); setSelectedId(null); }}
         />
       </section>
@@ -126,40 +150,40 @@ function MapPage() {
         </div>
       </header>
 
-      <div className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
+      <motion.div animate={{ opacity: detailId ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={detailId ? true : undefined} aria-hidden={detailId ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
         <div className="pointer-events-auto mb-2 flex justify-center gap-2 px-4">
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => scrollTrack(-1)}
             aria-label="Previous winery"
             className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
           >
             <ChevronLeft className="size-5" />
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost"
             type="button"
             onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
             className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow lg:h-11 lg:px-5 lg:text-base"
           >
             <List className="size-4 lg:size-5" /> {me ? "Closest to you" : "See all"}
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost"
             type="button"
             onClick={() => scrollTrack(1)}
             aria-label="Next winery"
             className="map-glass hidden h-11 w-11 items-center justify-center rounded-full shadow lg:inline-flex"
           >
             <ChevronRight className="size-5" />
-          </button>
+          </Button>
           {me && (
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => setMe(null)}
               aria-label="Show region wineries"
               className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow lg:h-11 lg:w-11"
             >
               <X className="size-4 lg:size-5" />
-            </button>
+            </Button>
           )}
         </div>
         <ol
@@ -170,31 +194,31 @@ function MapPage() {
         >
           {entries.map(({ w, km }, i) => (
             <li key={w.id} data-winery-id={w.id} className="map-card shrink-0">
-              <Link
-                to="/wineries/$id"
-                params={{ id: w.id }}
+              <Button variant="ghost"
+                onClick={() => openDetail(w.id)}
+                aria-label={`Open ${w.name}`}
                 aria-current={selectedId === w.id ? "true" : undefined}
-                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "map-card-selected ring-2" : ""}`}
+                className={`w-full whitespace-normal p-0 text-left hover:bg-card flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "map-card-selected ring-2" : ""}`}
               >
                 <div className="relative w-24 shrink-0 bg-muted lg:w-32">
-                  {w.photo_url && <img src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  {w.photo_url && <motion.img {...(reduced ? {} : { layoutId: `photo-${w.id}` })} transition={detailSpring} src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
                   <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3">
-                  <h2 className="truncate text-base font-semibold leading-tight">{w.name}</h2>
+                  <motion.h2 {...(reduced ? {} : { layoutId: `name-${w.id}` })} transition={detailSpring} className="truncate text-base font-semibold leading-tight">{w.name}</motion.h2>
                   <p className="truncate text-sm text-muted-foreground">
                     {village(w)}{km != null && ` · ${km.toFixed(1)} km`}
                   </p>
-                  <div className="mt-1 flex min-w-0 gap-1.5 overflow-hidden">
+                  <motion.div {...(reduced ? {} : { layoutId: `tags-${w.id}` })} transition={detailSpring} className="mt-1 flex min-w-0 gap-1.5 overflow-hidden">
                     <Tag>{w.appointment_required ? "Appointment" : "Walk-ins"}</Tag>
                     {w.tasting_fee && <Tag>{w.tasting_fee}</Tag>}
-                  </div>
+                  </motion.div>
                 </div>
-              </Link>
+              </Button>
             </li>
           ))}
         </ol>
-      </div>
+      </motion.div>
 
       <Drawer
         open={sheetOpen}
@@ -211,7 +235,7 @@ function MapPage() {
           <ol className={`divide-y overflow-y-auto overscroll-contain px-5 pb-8 ${snap === 1 ? "" : "max-h-[calc(50dvh-6rem)]"}`}>
             {entries.map(({ w, km }, i) => (
               <li key={w.id}>
-                <button
+                <Button variant="ghost"
                   type="button"
                   onClick={() => pickFromSheet(w.id)}
                   className="flex w-full items-center gap-3 py-3 text-left"
@@ -222,13 +246,20 @@ function MapPage() {
                     <span className="block truncate text-sm text-muted-foreground">{village(w)}</span>
                   </span>
                   {km != null && <span className="shrink-0 text-sm font-semibold text-primary">{km.toFixed(1)} km</span>}
-                </button>
+                </Button>
               </li>
             ))}
           </ol>
         </DrawerContent>
       </Drawer>
+      <Outlet />
+      <Suspense fallback={null}>
+        <AnimatePresence key={overlayId ?? "closed"}>
+          {overlayId && <WineryDetail key={overlayId} id={overlayId} closing={!detailId} onClose={closeDetail} />}
+        </AnimatePresence>
+      </Suspense>
     </main>
+    </LayoutGroup>
   );
 }
 
