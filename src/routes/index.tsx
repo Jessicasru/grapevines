@@ -105,7 +105,7 @@ function MapPage() {
         <h1 className="shrink-0 text-sm font-bold">Cellar Door</h1>
         <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
         <label className="sr-only" htmlFor="region">Region</label>
-        <div className="relative min-w-0">
+        <div className="relative min-w-[9.5rem]">
           <select
             id="region"
             value={regionId}
