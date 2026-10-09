@@ -80,6 +80,16 @@
 }
 
 /* Mapbox owns these controls; keep its compact icons comfortable to tap. */
+.map-directory { max-height: 36dvh; }
+.map-directory-expanded { max-height: 62dvh; }
+.map-preview { bottom: max(1rem, env(safe-area-inset-bottom)); }
+.map-locate { top: 11.75rem; }
+.wine-map-page .mapboxgl-ctrl-top-right { top: 0.5rem; right: 0.25rem; }
+@media (min-width: 1024px) {
+  .map-directory { max-height: none; }
+  .map-locate { top: 1.25rem; right: 5rem; }
+}
+
 .mapboxgl-ctrl-group button {
   width: 44px;
   height: 44px;

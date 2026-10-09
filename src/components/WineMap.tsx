@@ -46,7 +46,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
         trackUserLocation: false,
         showUserLocation: true,
       });
-      map.addControl(geo, "bottom-right");
+      map.addControl(geo, "top-right");
       geo.on("geolocate", (e: GeolocationPosition) =>
         cb.current.onLocate([e.coords.longitude, e.coords.latitude]),
       );
@@ -176,7 +176,7 @@ export function WineMap({ wineries, region, onSelect, onLocate }: Props) {
         type="button"
         variant="secondary"
         onClick={locate}
-        className="absolute left-3 top-3 h-11 bg-card px-4 text-sm font-semibold text-primary shadow-md"
+        className="map-locate absolute right-3 z-10 h-11 bg-card px-4 text-sm font-semibold text-primary shadow-md sm:right-5"
       >
         ◎ Near me
       </Button>
