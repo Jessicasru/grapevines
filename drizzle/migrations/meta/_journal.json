@@ -15,6 +15,13 @@
       "when": 1791581212343,
       "tag": "0001_accounts_saves_search",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791582718111,
+      "tag": "0002_migration",
+      "breakpoints": true
     }
   ]
 }
