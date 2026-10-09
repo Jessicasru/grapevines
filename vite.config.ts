@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Pre-bundle vaul with React so the dev server never serves it a second React copy.
+  vite: { optimizeDeps: { include: ["vaul"] } },
 });

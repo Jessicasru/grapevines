@@ -33,18 +33,17 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       if (!map) return;
       map.resize();
       const desktop = map.getContainer().clientWidth >= 1024;
-      const header = document.querySelector(".map-header")?.getBoundingClientRect();
-      const directory = document.querySelector(".map-directory")?.getBoundingClientRect();
+      const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding({
-        top: desktop ? 48 : (header?.bottom ?? 210) + 20,
-        bottom: desktop ? 48 : (directory?.height ?? 200) + 32,
-        left: desktop ? 440 : 32,
-        right: desktop ? 64 : 48,
+        top: 88,
+        bottom: (carousel?.height ?? 220) + 40,
+        left: desktop ? 64 : 32,
+        right: desktop ? 96 : 64,
       });
     };
     const observer = new ResizeObserver(resize);
     observer.observe(container.current);
-    const directory = document.querySelector(".map-directory");
+    const directory = document.querySelector(".map-carousel");
     if (directory) observer.observe(directory);
     import("mapbox-gl").then(({ default: mapboxgl }) => {
       if (cancelled || !container.current) return;
@@ -53,7 +52,11 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
         container: container.current,
         style: "mapbox://styles/mapbox/standard",
         config: { basemap: {
-          theme: "faded",
+          theme: "monochrome",
+          lightPreset: "day",
+          show3dObjects: false,
+          showLandmarkIcons: false,
+          showPedestrianRoads: false,
           showRoadLabels: false,
           showTransitLabels: false,
           showPointOfInterestLabels: false,
@@ -79,6 +82,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
       map.on("load", () => {
         const m = map;
         if (!m || cancelled) return;
+        m.setTerrain(null);
         const styles = getComputedStyle(document.documentElement);
         const burgundy = styles.getPropertyValue("--map-pin").trim();
         const paper = styles.getPropertyValue("--map-pin-foreground").trim();

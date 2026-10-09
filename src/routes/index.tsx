@@ -1,10 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ArrowUpRight, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, List, X } from "lucide-react";
 import { WineMap } from "@/components/WineMap";
-import { distanceKm, regionsQuery, wineriesQuery } from "@/lib/wine";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { distanceKm, regionsQuery, wineriesQuery, type Winery } from "@/lib/wine";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,126 +30,190 @@ export const Route = createFileRoute("/")({
   component: MapPage,
 });
 
+const village = (w: Winery) => w.address?.split(/\d{5}\s*/).pop()?.trim() || w.address;
+const SNAPS = [0.5, 1] as const;
+
 function MapPage() {
   const { data: regions } = useSuspenseQuery(regionsQuery);
   const { data: allWineries } = useSuspenseQuery(wineriesQuery);
   const [regionId, setRegionId] = useState(regions[0]?.id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
-  const [listExpanded, setListExpanded] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
+  const trackRef = useRef<HTMLOListElement>(null);
+  const settleTimer = useRef<number | undefined>(undefined);
 
   const region = regions.find((r) => r.id === regionId) ?? null;
-  const wineries = useMemo(
-    () => allWineries.filter((w) => w.region_id === regionId),
-    [allWineries, regionId],
-  );
-  const listRef = useRef<HTMLOListElement>(null);
-
-  const nearby = useMemo(() => {
-    if (!me) return [];
-    return allWineries
-      .map((w) => ({ w, km: distanceKm(me, [w.longitude, w.latitude]) }))
-      .sort((a, b) => a.km - b.km)
-      .slice(0, 5);
-  }, [me, allWineries]);
-
-  const entries = useMemo(
-    () => me ? nearby : wineries.map((w) => ({ w, km: null as number | null })),
-    [me, nearby, wineries],
-  );
+  const entries = useMemo(() => {
+    if (me) {
+      return allWineries
+        .map((w) => ({ w, km: distanceKm(me, [w.longitude, w.latitude]) as number | null }))
+        .sort((a, b) => (a.km ?? 0) - (b.km ?? 0))
+        .slice(0, 5);
+    }
+    return allWineries.filter((w) => w.region_id === regionId).map((w) => ({ w, km: null as number | null }));
+  }, [me, allWineries, regionId]);
   const visibleWineries = useMemo(() => entries.map(({ w }) => w), [entries]);
-  const selected = visibleWineries.find((w) => w.id === selectedId);
-  const selectWinery = (id: string | null) => {
-    setListExpanded(false);
+
+  const scrollToCard = useCallback((id: string, smooth = true) => {
+    const card = trackRef.current?.querySelector<HTMLElement>(`[data-winery-id="${id}"]`);
+    card?.scrollIntoView({ inline: "center", block: "nearest", behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  // Pin tap (or sheet row) → scroll carousel to that card.
+  useEffect(() => {
+    if (selectedId) scrollToCard(selectedId);
+  }, [selectedId, scrollToCard]);
+
+  // Swipe settles on a card → select it (flies map to its pin).
+  const onTrackScroll = () => {
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(() => {
+      const track = trackRef.current;
+      if (!track) return;
+      const mid = track.getBoundingClientRect().left + track.clientWidth / 2;
+      let best: { id: string; d: number } | null = null;
+      track.querySelectorAll<HTMLElement>("[data-winery-id]").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const d = Math.abs(r.left + r.width / 2 - mid);
+        if (!best || d < best.d) best = { id: el.dataset['wineryId']!, d };
+      });
+      const found = best as { id: string; d: number } | null;
+      if (found && found.id !== selectedId) setSelectedId(found.id);
+    }, 140);
+  };
+
+  const pickFromSheet = (id: string) => {
+    setSheetOpen(false);
     setSelectedId(id);
   };
-  useEffect(() => {
-    if (!selectedId) return;
-    const item = listRef.current?.querySelector(`[data-winery-id="${selectedId}"]`);
-    item?.scrollIntoView({ block: "nearest", behavior: "auto" });
-  }, [selectedId]);
 
   return (
     <main className="wine-map-page relative h-dvh w-full overflow-hidden">
       <section aria-label="Winery map" className="absolute inset-0">
-        <WineMap wineries={visibleWineries} region={region} selectedId={selectedId} onSelect={selectWinery} onLocate={(coords) => { setMe(coords); setSelectedId(null); }} />
+        <WineMap
+          wineries={visibleWineries}
+          region={region}
+          selectedId={selectedId}
+          onSelect={(id) => id && setSelectedId(id)}
+          onLocate={(coords) => { setMe(coords); setSelectedId(null); }}
+        />
       </section>
 
-      <header className="map-header absolute left-3 right-16 top-3 z-10 rounded-lg border bg-card p-4 shadow-lg sm:left-5 sm:top-5 lg:right-auto lg:w-96 lg:p-5">
-        <p className="eyebrow">Wine trips · Field notes</p>
-        <div className="mt-1 min-w-0">
-          <h1 className="min-w-0 text-3xl font-medium leading-tight">Cellar Door</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Where to taste</p>
-          <label className="sr-only" htmlFor="region">Region</label>
+      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center gap-2 rounded-full py-1.5 pl-4 pr-1.5 shadow sm:top-4">
+        <h1 className="shrink-0 text-sm font-bold">Cellar Door</h1>
+        <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+        <label className="sr-only" htmlFor="region">Region</label>
+        <div className="relative min-w-[9.5rem]">
           <select
             id="region"
             value={regionId}
-            onChange={(e) => {
-              setRegionId(e.target.value);
-               setMe(null);
-              setSelectedId(null);
-            }}
-            className="mt-4 h-11 w-full min-w-0 rounded-md border bg-background px-3 text-base font-semibold"
+            onChange={(e) => { setRegionId(e.target.value); setMe(null); setSelectedId(null); }}
+            className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {regions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}, {r.country}
-              </option>
+              <option key={r.id} value={r.id}>{r.name}, {r.country}</option>
             ))}
           </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         </div>
       </header>
 
-      {selected && (
-        <div className="map-preview absolute inset-x-3 z-20 overflow-hidden rounded-lg border bg-card shadow-xl lg:inset-x-auto lg:bottom-8 lg:left-[calc(50%+12rem)] lg:w-96 lg:-translate-x-1/2">
-          <Button variant="ghost" size="icon" aria-label="Close winery preview" onClick={() => setSelectedId(null)} className="absolute right-1 top-1 z-10 h-11 w-11 bg-card"><X /></Button>
-          <Link
-            to="/wineries/$id"
-            params={{ id: selected.id }}
-            className="flex min-h-32 overflow-hidden pr-10"
+      <div className="map-carousel absolute inset-x-0 bottom-0 z-10 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mb-3 flex justify-center gap-2 px-4">
+          <button
+            type="button"
+            onClick={() => { setSnap(SNAPS[0]); setSheetOpen(true); }}
+            className="map-glass inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold shadow"
           >
-            {selected.photo_url && (
-              <img src={selected.photo_url} alt="" className="w-20 shrink-0 object-cover sm:w-28" />
-            )}
-            <div className="flex min-w-0 flex-col justify-center gap-1 p-3 sm:p-4">
-              <p className="eyebrow">{regions.find((r) => r.id === selected.region_id)?.name}</p>
-              <h2 className="break-words text-lg leading-tight sm:text-xl">{selected.name}</h2>
-              <p className="text-sm text-muted-foreground">
-                {selected.appointment_required ? "By appointment" : "Walk-ins welcome"} · {selected.tasting_fee}
-              </p>
-              <span className="text-sm font-semibold text-primary">Read the notes →</span>
-            </div>
-          </Link>
+            <List className="size-4" /> {me ? "Closest to you" : `See all ${entries.length}`}
+          </button>
+          {me && (
+            <button
+              type="button"
+              onClick={() => setMe(null)}
+              aria-label="Show region wineries"
+              className="map-glass inline-flex h-9 w-9 items-center justify-center rounded-full shadow"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
-      )}
-
-      <aside aria-label="Winery directory" className={`map-directory absolute inset-x-3 bottom-3 z-10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-xl sm:inset-x-5 sm:bottom-5 lg:bottom-5 lg:left-5 lg:right-auto lg:top-56 lg:w-96 ${listExpanded ? "map-directory-expanded" : ""} ${selected ? "map-directory-selected" : ""}`}>
-        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-4 lg:px-5">
-         <div className="min-w-0">
-         <p className="eyebrow">{me ? "Closest to you" : "In this region"}</p>
-         <h2 className="mt-1 break-words text-xl">
-          {me ? "A short drive away" : `${wineries.length} cellars in ${region?.name ?? "—"}`}
-        </h2>
-         </div>
-         <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 lg:hidden" aria-label={listExpanded ? "Collapse winery list" : "Expand winery list"} aria-expanded={listExpanded} onClick={() => setListExpanded(!listExpanded)}>{listExpanded ? <ChevronDown /> : <ChevronUp />}</Button>
-         {me && <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Show region wineries" onClick={() => setMe(null)}><X /></Button>}
-        </div>
-         <ol ref={listRef} className="min-h-0 flex-1 divide-y overflow-y-auto overscroll-contain px-4 lg:px-5">
+        <ol
+          ref={trackRef}
+          onScroll={onTrackScroll}
+          aria-label="Wineries"
+          className="map-carousel-track flex gap-3 overflow-x-auto overscroll-x-contain pb-2 pt-1"
+        >
           {entries.map(({ w, km }, i) => (
-            <li key={w.id} data-winery-id={w.id}>
-               <Button variant="ghost" onClick={() => selectWinery(w.id)} aria-pressed={selectedId === w.id} className={`group grid h-auto w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-3 whitespace-normal rounded-none px-0 py-4 text-left ${selectedId === w.id ? "bg-secondary text-primary" : ""}`}>
-                <span className="shrink-0 font-serif text-sm font-medium tabular-nums text-muted-foreground">{i + 1}</span>
-                <span className="min-w-0 break-words">
-                   <span className="block font-serif text-lg group-hover:text-primary">{w.name}</span>
-                  <span className="text-sm text-muted-foreground">{w.address}</span>
-                </span>
-                {km != null && <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-primary">{km.toFixed(1)} km</span>}
-                 {km == null && <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />}
-              </Button>
+            <li key={w.id} data-winery-id={w.id} className="map-card shrink-0">
+              <Link
+                to="/wineries/$id"
+                params={{ id: w.id }}
+                aria-current={selectedId === w.id ? "true" : undefined}
+                className={`flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 ${selectedId === w.id ? "ring-2" : ""}`}
+              >
+                <div className="relative w-24 shrink-0 bg-muted">
+                  {w.photo_url && <img src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3">
+                  <h2 className="truncate text-base font-semibold leading-tight">{w.name}</h2>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {village(w)}{km != null && ` · ${km.toFixed(1)} km`}
+                  </p>
+                  <div className="mt-1 flex min-w-0 gap-1.5 overflow-hidden">
+                    <Tag>{w.appointment_required ? "Appointment" : "Walk-ins"}</Tag>
+                    {w.tasting_fee && <Tag>{w.tasting_fee}</Tag>}
+                  </div>
+                </div>
+              </Link>
             </li>
           ))}
         </ol>
-      </aside>
+      </div>
+
+      <Drawer
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        snapPoints={[...SNAPS]}
+        activeSnapPoint={snap}
+        setActiveSnapPoint={setSnap}
+      >
+        <DrawerContent className="mx-auto h-[96dvh] max-w-xl rounded-t-lg border-0 shadow">
+          <div className="px-5 pb-2 pt-3">
+            <DrawerTitle className="text-lg">{me ? "Closest to you" : `${entries.length} wineries in ${region?.name ?? ""}`}</DrawerTitle>
+            <DrawerDescription>Tap one to see it on the map.</DrawerDescription>
+          </div>
+          <ol className={`divide-y overflow-y-auto overscroll-contain px-5 pb-8 ${snap === 1 ? "" : "max-h-[calc(50dvh-6rem)]"}`}>
+            {entries.map(({ w, km }, i) => (
+              <li key={w.id}>
+                <button
+                  type="button"
+                  onClick={() => pickFromSheet(w.id)}
+                  className="flex w-full items-center gap-3 py-3 text-left"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{w.name}</span>
+                    <span className="block truncate text-sm text-muted-foreground">{village(w)}</span>
+                  </span>
+                  {km != null && <span className="shrink-0 text-sm font-semibold text-primary">{km.toFixed(1)} km</span>}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </DrawerContent>
+      </Drawer>
     </main>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="truncate rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
+      {children}
+    </span>
   );
 }
