@@ -101,9 +101,8 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center gap-2 rounded-full py-1.5 pl-4 pr-1.5 shadow sm:top-4">
-        <h1 className="shrink-0 text-sm font-bold">Cellar Door</h1>
-        <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4">
+        <h1 className="sr-only">Cellar Door</h1>
         <label className="sr-only" htmlFor="region">Region</label>
         <div className="relative min-w-[9.5rem]">
           <select
