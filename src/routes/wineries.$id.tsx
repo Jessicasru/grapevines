@@ -110,7 +110,7 @@ function WineryPage() {
                     {r.verdict}
                   </span>
                 </div>
-                <p className="mt-3 font-serif text-lg italic leading-relaxed">“{r.note}”</p>
+                <p className="mt-3 text-base italic leading-relaxed">“{r.note}”</p>
                 {r.wines_to_try && (
                   <p className="mt-3 text-sm">
                     <span className="eyebrow mr-2">Try</span>

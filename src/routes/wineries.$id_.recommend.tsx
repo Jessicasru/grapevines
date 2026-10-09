@@ -60,7 +60,7 @@ function RecommendPage() {
     <main className="mx-auto min-h-dvh max-w-2xl px-5 pb-16 pt-6 sm:px-8 sm:pt-10 lg:pt-16">
       <Link to="/wineries/$id" params={{ id }} className="inline-flex min-h-11 items-center break-words text-sm font-semibold text-primary">← {w?.name}</Link>
       <p className="eyebrow mt-8">A note for the next traveller</p>
-      <h1 className="mt-1 text-3xl font-medium italic sm:text-4xl">Was it worth it?</h1>
+      <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">Was it worth it?</h1>
 
       <form onSubmit={submit} className="mt-8 space-y-6">
         <div className="grid grid-cols-2 gap-3">
