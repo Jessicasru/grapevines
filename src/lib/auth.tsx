@@ -19,11 +19,11 @@ type AuthCtx = {
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
+const signedOut: AuthCtx = { user: null, profile: null, requireAuth: () => {}, openProfile: () => {}, signOut: async () => {} };
 
 export function useAuth() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
+  // Falls back to a signed-out state (e.g. mid hot-reload) instead of blanking the page.
+  return useContext(Ctx) ?? signedOut;
 }
 
 /** Fresh user id at call time — safe inside callbacks that run after sign-in. */
