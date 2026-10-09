@@ -77,7 +77,7 @@ function MapPage() {
       track.querySelectorAll<HTMLElement>("[data-winery-id]").forEach((el) => {
         const r = el.getBoundingClientRect();
         const d = Math.abs(r.left + r.width / 2 - mid);
-        if (!best || d < best.d) best = { id: el.dataset.wineryId!, d };
+        if (!best || d < best.d) best = { id: el.dataset['wineryId']!, d };
       });
       const found = best as { id: string; d: number } | null;
       if (found && found.id !== selectedId) setSelectedId(found.id);
