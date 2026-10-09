@@ -16,7 +16,7 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function WineryDetail({ id, onClose }: { id: string; onClose: () => void }) {
+export function WineryDetail({ id, closing, onClose }: { id: string; closing: boolean; onClose: () => void }) {
   const reduced = useReducedMotion();
   const [present, safeToRemove] = usePresence();
   useEffect(() => {
@@ -49,7 +49,7 @@ export function WineryDetail({ id, onClose }: { id: string; onClose: () => void 
     <motion.aside
       ref={panelRef} tabIndex={-1} role="dialog" aria-modal={false} aria-labelledby="winery-detail-title"
       className="winery-detail absolute z-30 flex flex-col overflow-hidden rounded-lg bg-card shadow outline-none"
-      initial={{ opacity: 0, x: !reduced && desktop ? -48 : 0, y: !reduced && !desktop ? 48 : 0 }} animate={{ opacity: 1, x: 0, y: 0 }}
+      initial={{ opacity: 0, x: !reduced && desktop ? -48 : 0, y: !reduced && !desktop ? 48 : 0 }} animate={{ opacity: closing ? 0 : 1, x: closing && !reduced && desktop ? -48 : 0, y: closing && !reduced && !desktop ? 48 : 0 }}
       exit={{ opacity: 0, x: !reduced && desktop ? -48 : 0, y: !reduced && !desktop ? 48 : 0 }} transition={reduced ? { duration: 0.15 } : detailSpring}
     >
       <motion.div className="detail-drag-handle flex shrink-0 justify-center py-3 lg:hidden"

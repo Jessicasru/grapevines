@@ -37,6 +37,12 @@ function MapPage() {
     return match && "id" in match.params ? String(match.params.id) : null;
   } });
   const closeDetail = useCallback(() => { void navigate({ to: "/", resetScroll: false }); }, [navigate]);
+  const [overlayId, setOverlayId] = useState<string | null>(detailId);
+  useEffect(() => {
+    if (detailId) { setOverlayId(detailId); return; }
+    const timer = window.setTimeout(() => setOverlayId(null), reduced ? 150 : 400);
+    return () => window.clearTimeout(timer);
+  }, [detailId, reduced]);
   const openDetail = (id: string) => {
     window.clearTimeout(settleTimer.current);
     setSheetOpen(false);
@@ -248,8 +254,8 @@ function MapPage() {
       </Drawer>
       <Outlet />
       <Suspense fallback={null}>
-        <AnimatePresence>
-          {detailId && <WineryDetail key={detailId} id={detailId} onClose={closeDetail} />}
+        <AnimatePresence key={overlayId ?? "closed"}>
+          {overlayId && <WineryDetail key={overlayId} id={overlayId} closing={!detailId} onClose={closeDetail} />}
         </AnimatePresence>
       </Suspense>
     </main>
