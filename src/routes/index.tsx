@@ -101,21 +101,21 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4">
+      <header className="map-glass absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-6rem)] -translate-x-1/2 items-center rounded-full p-1.5 shadow sm:top-4 lg:p-2">
         <h1 className="sr-only">Cellar Door</h1>
         <label className="sr-only" htmlFor="region">Region</label>
-        <div className="relative min-w-[9.5rem]">
+        <div className="relative min-w-[9.5rem] lg:min-w-[15rem]">
           <select
             id="region"
             value={regionId}
             onChange={(e) => { setRegionId(e.target.value); setMe(null); setSelectedId(null); }}
-            className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-4 lg:pr-10 lg:text-base"
           >
             {regions.map((r) => (
               <option key={r.id} value={r.id}>{r.name}, {r.country}</option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground lg:right-3.5 lg:size-5" />
         </div>
       </header>
 
