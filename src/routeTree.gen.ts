@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WineriesIdRouteImport } from './routes/wineries.$id'
+import { Route as WineriesIdRecommendRouteImport } from './routes/wineries.$id_.recommend'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WineriesIdRoute = WineriesIdRouteImport.update({
+  id: '/wineries/$id',
+  path: '/wineries/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WineriesIdRecommendRoute = WineriesIdRecommendRouteImport.update({
+  id: '/wineries/$id_/recommend',
+  path: '/wineries/$id/recommend',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/wineries/$id': typeof WineriesIdRoute
+  '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/wineries/$id': typeof WineriesIdRoute
+  '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/wineries/$id': typeof WineriesIdRoute
+  '/wineries/$id_/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/wineries/$id' | '/wineries/$id/recommend'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/wineries/$id' | '/wineries/$id/recommend'
+  id: '__root__' | '/' | '/wineries/$id' | '/wineries/$id_/recommend'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  WineriesIdRoute: typeof WineriesIdRoute
+  WineriesIdRecommendRoute: typeof WineriesIdRecommendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wineries/$id': {
+      id: '/wineries/$id'
+      path: '/wineries/$id'
+      fullPath: '/wineries/$id'
+      preLoaderRoute: typeof WineriesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wineries/$id_/recommend': {
+      id: '/wineries/$id_/recommend'
+      path: '/wineries/$id/recommend'
+      fullPath: '/wineries/$id/recommend'
+      preLoaderRoute: typeof WineriesIdRecommendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  WineriesIdRoute: WineriesIdRoute,
+  WineriesIdRecommendRoute: WineriesIdRecommendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
