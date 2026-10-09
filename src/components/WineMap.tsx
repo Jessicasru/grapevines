@@ -87,22 +87,27 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           data: { type: "FeatureCollection", features: [] },
           cluster: true,
           clusterMaxZoom: 13,
-          clusterRadius: 45,
+          clusterRadius: 60,
         });
         m.addLayer({
           id: "clusters", type: "circle", source: "wineries", slot: "top",
           filter: ["has", "point_count"],
           paint: {
             "circle-color": burgundy,
-            "circle-radius": ["step", ["get", "point_count"], 20, 5, 25, 10, 30],
-            "circle-stroke-width": 3,
+            "circle-radius": ["step", ["get", "point_count"], 16, 5, 19, 10, 22],
+            "circle-stroke-width": 2,
             "circle-stroke-color": paper,
           },
         });
         m.addLayer({
           id: "cluster-count", type: "symbol", source: "wineries", slot: "top",
           filter: ["has", "point_count"],
-          layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 14 },
+          layout: {
+            "text-field": ["to-string", ["get", "point_count"]],
+            "text-size": 13,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+          },
           paint: { "text-color": paper },
         });
         m.addLayer({
@@ -111,6 +116,7 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
           layout: {
             "icon-image": ["get", "pin"],
             "icon-anchor": "bottom",
+            "icon-size": 0.72,
             "icon-allow-overlap": true,
           },
         });
@@ -172,12 +178,12 @@ export function WineMap({ wineries, region, selectedId, onSelect, onLocate }: Pr
         ctx.arc(24, 23, 20, Math.PI, 0);
         ctx.bezierCurveTo(44, 35, 29, 48, 24, 57);
         ctx.closePath();
-        ctx.fillStyle = active ? paper : burgundy;
+        ctx.fillStyle = burgundy;
         ctx.fill();
-        ctx.strokeStyle = active ? burgundy : paper;
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = paper;
+        ctx.lineWidth = active ? 5 : 3;
         ctx.stroke();
-        ctx.fillStyle = active ? burgundy : paper;
+        ctx.fillStyle = paper;
         ctx.font = `bold 16px ${styles.getPropertyValue("--font-sans").trim()}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
