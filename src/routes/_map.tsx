@@ -39,7 +39,6 @@ function MapPage() {
   const closeDetail = useCallback(() => { void navigate({ to: "/", resetScroll: false }); }, [navigate]);
   const openDetail = (id: string) => {
     window.clearTimeout(settleTimer.current);
-    setSelectedId(id);
     setSheetOpen(false);
     void navigate({ to: "/wineries/$id", params: { id }, resetScroll: false });
   };
@@ -52,6 +51,7 @@ function MapPage() {
   const settleTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    window.clearTimeout(settleTimer.current);
     if (!detailId) return;
     const winery = allWineries.find((w) => w.id === detailId);
     if (winery) { setRegionId(winery.region_id); setSelectedId(detailId); }
@@ -195,15 +195,15 @@ function MapPage() {
                 className={`w-full whitespace-normal p-0 text-left hover:bg-card flex h-28 overflow-hidden rounded-lg bg-card shadow outline-none ring-primary transition focus-visible:ring-2 lg:h-36 ${selectedId === w.id ? "map-card-selected ring-2" : ""}`}
               >
                 <div className="relative w-24 shrink-0 bg-muted lg:w-32">
-                  {w.photo_url && <motion.img layoutId={reduced ? undefined : `photo-${w.id}`} transition={detailSpring} src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  {w.photo_url && <motion.img {...(reduced ? {} : { layoutId: `photo-${w.id}` })} transition={detailSpring} src={w.photo_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
                   <span className="absolute left-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3">
-                  <motion.h2 layoutId={reduced ? undefined : `name-${w.id}`} transition={detailSpring} className="truncate text-base font-semibold leading-tight">{w.name}</motion.h2>
+                  <motion.h2 {...(reduced ? {} : { layoutId: `name-${w.id}` })} transition={detailSpring} className="truncate text-base font-semibold leading-tight">{w.name}</motion.h2>
                   <p className="truncate text-sm text-muted-foreground">
                     {village(w)}{km != null && ` · ${km.toFixed(1)} km`}
                   </p>
-                  <motion.div layoutId={reduced ? undefined : `tags-${w.id}`} transition={detailSpring} className="mt-1 flex min-w-0 gap-1.5 overflow-hidden">
+                  <motion.div {...(reduced ? {} : { layoutId: `tags-${w.id}` })} transition={detailSpring} className="mt-1 flex min-w-0 gap-1.5 overflow-hidden">
                     <Tag>{w.appointment_required ? "Appointment" : "Walk-ins"}</Tag>
                     {w.tasting_fee && <Tag>{w.tasting_fee}</Tag>}
                   </motion.div>
