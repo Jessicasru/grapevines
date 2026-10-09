@@ -118,7 +118,7 @@ function MapPage() {
         </div>
       )}
 
-      <aside aria-label="Winery directory" className={`map-directory absolute inset-x-3 bottom-3 z-10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-xl sm:inset-x-5 sm:bottom-5 lg:bottom-5 lg:left-5 lg:right-auto lg:top-56 lg:w-96 ${listExpanded ? "map-directory-expanded" : ""}`}>
+      <aside aria-label="Winery directory" className={`map-directory absolute inset-x-3 bottom-3 z-10 flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card shadow-xl sm:inset-x-5 sm:bottom-5 lg:bottom-5 lg:left-5 lg:right-auto lg:top-56 lg:w-96 ${listExpanded ? "map-directory-expanded" : ""} ${selected ? "map-directory-selected" : ""}`}>
         <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-4 py-4 lg:px-5">
          <div className="min-w-0">
          <p className="eyebrow">{me ? "Closest to you" : "In this region"}</p>

@@ -58,6 +58,8 @@
   --border: oklch(0.87 0.025 70);
   --input: oklch(0.87 0.025 70);
   --ring: oklch(0.38 0.12 18);
+  --map-pin: #6e1f2a;
+  --map-pin-foreground: #f7f1e6;
 }
 
 @layer base {
@@ -82,12 +84,13 @@
 /* Mapbox owns these controls; keep its compact icons comfortable to tap. */
 .map-directory { max-height: 36dvh; }
 .map-directory-expanded { max-height: 62dvh; }
-.map-preview { bottom: max(1rem, env(safe-area-inset-bottom)); }
-.map-locate { top: 11.75rem; }
+.map-directory-selected { max-height: 20dvh; }
+.map-preview { bottom: calc(20dvh + 1.5rem); }
 .wine-map-page .mapboxgl-ctrl-top-right { top: 0.5rem; right: 0.25rem; }
 @media (min-width: 1024px) {
   .map-directory { max-height: none; }
-  .map-locate { top: 1.25rem; right: 5rem; }
+  .map-directory-selected { max-height: none; }
+  .map-preview { bottom: 2rem; }
 }
 
 .mapboxgl-ctrl-group button {
