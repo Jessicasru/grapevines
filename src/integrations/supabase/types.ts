@@ -14,12 +14,34 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       recommendations: {
         Row: {
           author_name: string
           created_at: string
           id: string
           note: string
+          user_id: string | null
           verdict: string
           winery_id: string
           wines_to_try: string | null
@@ -28,7 +50,8 @@ export type Database = {
           author_name: string
           created_at?: string
           id?: string
-          note: string
+          note?: string
+          user_id?: string | null
           verdict: string
           winery_id: string
           wines_to_try?: string | null
@@ -38,11 +61,19 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string
+          user_id?: string | null
           verdict?: string
           winery_id?: string
           wines_to_try?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "recommendations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recommendations_winery_id_fkey"
             columns: ["winery_id"]
@@ -82,11 +113,52 @@ export type Database = {
         }
         Relationships: []
       }
+      saves: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+          winery_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status: string
+          user_id: string
+          winery_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+          winery_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saves_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saves_winery_id_fkey"
+            columns: ["winery_id"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wineries: {
         Row: {
           address: string | null
           appointment_required: boolean
           created_at: string
+          created_by: string | null
+          featured: boolean
           id: string
           languages: string[]
           latitude: number
@@ -97,11 +169,14 @@ export type Database = {
           region_id: string
           ships_abroad: boolean
           tasting_fee: string | null
+          village: string | null
         }
         Insert: {
           address?: string | null
           appointment_required?: boolean
           created_at?: string
+          created_by?: string | null
+          featured?: boolean
           id?: string
           languages?: string[]
           latitude: number
@@ -112,11 +187,14 @@ export type Database = {
           region_id: string
           ships_abroad?: boolean
           tasting_fee?: string | null
+          village?: string | null
         }
         Update: {
           address?: string | null
           appointment_required?: boolean
           created_at?: string
+          created_by?: string | null
+          featured?: boolean
           id?: string
           languages?: string[]
           latitude?: number
@@ -127,8 +205,16 @@ export type Database = {
           region_id?: string
           ships_abroad?: boolean
           tasting_fee?: string | null
+          village?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "wineries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wineries_region_id_fkey"
             columns: ["region_id"]

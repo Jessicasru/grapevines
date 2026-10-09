@@ -10,6 +10,12 @@ const PUBLIC_TOKEN =
 
 type Props = {
   wineries: Winery[];
+  /** Unrecommended wineries: quiet grey dots from zoom 11, below the pins. */
+  baseWineries: Winery[];
+  /** When true, a map tap picks a location instead of selecting. */
+  picking?: boolean;
+  picked?: [number, number] | null;
+  onPick?: (coords: [number, number]) => void;
   region: Region | null;
   selectedId: string | null;
   detailId: string | null;
@@ -18,13 +24,13 @@ type Props = {
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ wineries, baseWineries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
   const token = (import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined) ?? PUBLIC_TOKEN;
-  const latest = useRef({ wineries, region, onSelect, onLocate });
-  latest.current = { wineries, region, onSelect, onLocate };
+  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick });
+  latest.current = { wineries, region, onSelect, onLocate, picking, onPick };
   const fittedRegion = useRef<string | null>(null);
   const previousCamera = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> } | null>(null);
   const activeDetail = useRef<string | null>(null);
@@ -86,6 +92,14 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
         });
         const white = styles.getPropertyValue("--map-cluster").trim() || "#ffffff";
         const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
+        const empty = { type: "FeatureCollection" as const, features: [] };
+        // Base layer first so every burgundy pin and cluster draws above it.
+        m.addSource("base", { type: "geojson", data: empty });
+        m.addLayer({
+          id: "base-dot", type: "circle", source: "base", minzoom: 11,
+          paint: { "circle-color": "#8f8a84", "circle-radius": 5, "circle-stroke-width": 1.5, "circle-stroke-color": white, "circle-opacity": 0.85 },
+        });
+        m.addSource("picked", { type: "geojson", data: empty });
         // No slot: these layers draw above every basemap label.
         m.addLayer({
           id: "clusters", type: "circle", source: "wineries",
@@ -136,6 +150,10 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
           },
           paint: { "text-color": white },
         });
+        m.addLayer({
+          id: "picked-pin", type: "circle", source: "picked",
+          paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
+        });
         void paper;
         m.on("click", "clusters", (e) => {
           const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as unknown as { geometry: { type: string; coordinates: [number, number] }; properties?: { cluster_id?: number } } | undefined;
@@ -146,12 +164,20 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
             if (!err && zoom != null) m.easeTo({ center: coordinates, zoom });
           });
         });
+        m.on("click", "base-dot", (e) => {
+          if (latest.current.picking) return;
+          const hit = m.queryRenderedFeatures(e.point, { layers: ["winery", "clusters"] });
+          if (hit.length) return;
+          const id = (e.features?.[0] as unknown as { properties?: { id?: string } } | undefined)?.properties?.id;
+          if (id) latest.current.onSelect(String(id));
+        });
         m.on("click", "winery", (e) => {
+          if (latest.current.picking) return;
           const feature = e.features?.[0] as unknown as { properties?: { id?: string } } | undefined;
           const id = feature?.properties?.id;
           if (id) latest.current.onSelect(String(id));
         });
-        for (const layer of ["clusters", "winery"]) {
+        for (const layer of ["clusters", "winery", "base-dot"]) {
           m.on("mouseenter", layer, () => (m.getCanvas().style.cursor = "pointer"));
           m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
         }
@@ -180,6 +206,27 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
       })),
     });
   }, [wineries, ready]);
+
+  useEffect(() => {
+    const source = mapRef.current?.getSource("base") as GeoJSONSource | undefined;
+    if (!ready || !source) return;
+    source.setData({
+      type: "FeatureCollection",
+      features: baseWineries.map((w) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [w.longitude, w.latitude] },
+        properties: { id: w.id },
+      })),
+    });
+  }, [baseWineries, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const source = map?.getSource("picked") as GeoJSONSource | undefined;
+    if (!ready || !map || !source) return;
+    source.setData({ type: "FeatureCollection", features: picked ? [{ type: "Feature", geometry: { type: "Point", coordinates: picked }, properties: {} }] : [] });
+    map.getCanvas().style.cursor = picking ? "crosshair" : "";
+  }, [picked, picking, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -248,7 +295,7 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
       const timeout = window.setTimeout(finish, 400);
       return () => { window.clearTimeout(timeout); map.off("moveend", finish); restoring.current = false; };
     }
-    const winery = wineries.find((w) => w.id === detailId);
+    const winery = wineries.find((w) => w.id === detailId) ?? baseWineries.find((w) => w.id === detailId);
     if (!winery || activeDetail.current === detailId) return;
     map.stop();
     if (!previousCamera.current) {
@@ -265,14 +312,19 @@ export function WineMap({ wineries, region, selectedId, detailId, onSelect, onLo
     const observer = new ResizeObserver(focus);
     observer.observe(map.getContainer());
     return () => observer.disconnect();
-  }, [detailId, wineries, ready]);
+  }, [detailId, wineries, baseWineries, ready]);
 
   return <div ref={container} className="h-full w-full" onClick={(event) => {
     if (!(event.target instanceof HTMLCanvasElement)) return;
     const map = mapRef.current;
     const rect = container.current?.getBoundingClientRect();
     if (!map || !rect) return;
-    const layers = ["winery", "clusters"].filter((layer) => map.getLayer(layer));
+    if (latest.current.picking) {
+      const p = map.unproject([event.clientX - rect.left, event.clientY - rect.top]);
+      latest.current.onPick?.([p.lng, p.lat]);
+      return;
+    }
+    const layers = ["winery", "clusters", "base-dot"].filter((layer) => map.getLayer(layer));
     const hits = layers.length ? map.queryRenderedFeatures([event.clientX - rect.left, event.clientY - rect.top], { layers }) : [];
     if (!hits.length) latest.current.onSelect(null);
   }} />;
