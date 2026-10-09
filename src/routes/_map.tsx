@@ -177,7 +177,7 @@ function MapPage() {
         <div className="map-carousel-safe pointer-events-none absolute inset-x-0 bottom-0 z-20">
           <AddWineryPanel initialName={adding.name} picked={picked} regions={regions}
             onCancel={() => { setAdding(null); setPicked(null); }}
-            onCreated={(id) => { const region = picked ? regions[0]?.id : regionId; setAdding(null); setPicked(null); void region; openDetail(id); }} />
+            onCreated={(id) => { setAdding(null); setPicked(null); openDetail(id); }} />
         </div>
       )}
       <MyWineriesDrawer open={mineOpen} onOpenChange={setMineOpen} onPick={(id, region) => { setMineOpen(false); goTo(id, region); }} />
