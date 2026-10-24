@@ -17,3 +17,4 @@
 - Auth state lives in src/lib/auth.tsx (AuthProvider + requireAuth); gated actions call requireAuth instead of redirecting, because every screen is public.
 - "Recommended" is computed client-side by isRecommended in src/lib/wine.ts so carousel, pins and tests share one rule.
 - Avatars are stored as small resized data URLs on profiles, because public storage buckets are blocked in this workspace.
+- CSV imports use Papa Parse and an authenticated server function calling an admin-checked database RPC; geography filtering and serialized source matching live in the RPC so repeat and concurrent uploads remain idempotent.
