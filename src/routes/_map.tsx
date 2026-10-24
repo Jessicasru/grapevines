@@ -163,7 +163,7 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 rounded-full p-1.5 shadow lg:left-4 lg:right-auto lg:w-[40rem] lg:gap-2 lg:p-2">
+      <header className="map-glass map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 rounded-full p-1.5 shadow lg:left-1/2 lg:right-auto lg:w-[40rem] lg:-translate-x-1/2 lg:gap-2 lg:p-2">
         <h1 className="sr-only">Grapevines</h1>
         <RegionSelector regions={regions} location={location} onSelect={selectLocation} />
         <SearchBox
@@ -171,11 +171,11 @@ function MapPage() {
           onPick={(w) => goTo(w.id, w.region_id)}
           onAdd={(name) => requireAuth(() => { if (detailId) closeDetail(); setPicked(null); setAdding({ name }); })}
         />
-        <button type="button" onClick={() => requireAuth(() => setMineOpen(true))}
+        <Button variant="secondary" size="icon" type="button" onClick={() => requireAuth(() => setMineOpen(true))}
           aria-label={user ? "My wineries" : "Sign in"}
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
           {user ? <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-9 text-sm lg:size-11" /> : <UserIcon className="size-4 lg:size-5" />}
-        </button>
+        </Button>
       </header>
 
       {adding && (
