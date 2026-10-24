@@ -321,10 +321,17 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
             if (cancelled || detailRef.current || restoring.current) return;
             const pitch = pitchAtZoom(m.getZoom());
             const terrain = m.getTerrain();
+            // With terrain, zoom changes can alter altitude and emit zoom again.
+            // Never chase those altitude adjustments with another pitch update.
             if (pitch > 0 && !terrain) m.setTerrain({ source: "mapbox-dem", exaggeration: 1.3 });
             if (pitch === 0 && terrain) m.setTerrain(null);
-            if (Math.abs(m.getPitch() - pitch) > 0.1) m.setPitch(pitch);
+            if (!m.isMoving() && Math.abs(m.getPitch() - pitch) > 0.1) m.setPitch(pitch);
           });
+        });
+        m.on("zoomend", () => {
+          if (detailRef.current || restoring.current) return;
+          const pitch = pitchAtZoom(m.getZoom());
+          if (Math.abs(m.getPitch() - pitch) > 0.1) m.easeTo({ pitch, duration: 300 });
         });
         m.on("moveend", () => {
           const center = m.getCenter();
