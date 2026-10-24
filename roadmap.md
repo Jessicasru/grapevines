@@ -1,4 +1,4 @@
-- [ ] Add fitted world overview, clickable regions, faded globe/terrain entry, Back to world and resize handling; verify mobile, desktop and detail navigation.
+- [x] Add fitted world overview, clickable regions, faded globe/terrain entry, Back to world and resize handling; verify mobile, desktop and detail navigation.
 - [x] Simplify overview to soft fill and red markers; fade grey dots in, hide polygons at zoom 13.5, verify three levels on phone/desktop.
 - [x] Apply zoom-based grey-dot and wine-area emphasis; preserve opening bounds and verify overview, zoom 11 and zoom 14 on phone/desktop.
 - [x] Show grey and red wineries together on opening, scale grey dots with zoom, fit all regional wineries at max zoom 11, and verify mobile/desktop.
