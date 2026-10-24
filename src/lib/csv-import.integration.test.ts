@@ -10,6 +10,7 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
     if (!sql) throw new Error("Database test connection unavailable");
     try {
       await sql.begin(async (tx) => {
+        await tx`set local search_path = public, extensions`;
         const [admin] = await tx`select id from public.profiles where is_admin limit 1`;
         if (!admin) throw new Error("Admin test account unavailable");
         await tx`select set_config('request.jwt.claim.sub', ${admin['id']}, true)`;
