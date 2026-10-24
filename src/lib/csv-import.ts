@@ -8,7 +8,7 @@ export type CsvImportSummary = { created: number; updated: number; skipped_outsi
 const requiredColumns = ["source_id", "name", "latitude", "longitude", "website", "address", "postcode", "locality", "description"];
 
 export function parseWineryCsv(csv: string): CsvRow[] {
-  const parsed = Papa.parse<CsvRow>(csv, { header: true, skipEmptyLines: "greedy" });
+  const parsed = Papa.parse<CsvRow>(csv, { header: true, skipEmptyLines: true });
   if (parsed.errors.length) throw new Error(`CSV could not be read: ${parsed.errors[0]?.message ?? "Invalid file"}`);
   const missing = requiredColumns.filter((column) => !parsed.meta.fields?.includes(column));
   if (missing.length) throw new Error(`Missing CSV columns: ${missing.join(", ")}`);
