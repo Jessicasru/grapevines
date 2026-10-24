@@ -385,6 +385,7 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
     if (!ready || !map || fittedRegion.current === key) return;
     const initial = fittedRegion.current === null;
     fittedRegion.current = key;
+    setCameraReady(null);
     const id = ++transitionId.current;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
@@ -426,16 +427,20 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
       }
       for (const layer of ["base-dot", "clusters", "cluster-count", "winery-shadow", "winery", "winery-number", "picked-pin"]) map.setLayoutProperty(layer, "visibility", world ? "none" : "visible");
       for (const layer of ["region-marker", "region-name"]) map.setLayoutProperty(layer, "visibility", world ? "visible" : "none");
+      const regionalCamera = region ? (() => {
+        const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
+        const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
+        const camera = map.cameraForBounds(bounds, { padding, maxZoom, pitch: immersiveRegionSettings.pitch, bearing: 0 });
+        return camera ? { ...camera, padding, pitch: immersiveRegionSettings.pitch, duration: reduce ? 0 : 1600 } : null;
+      })() : null;
+      if (regionalCamera) map.flyTo({ ...regionalCamera, preloadOnly: true });
       await settle();
       if (!valid()) return;
       // Projection changes can reinstate the style's cached terrain configuration.
       if (world) map.setTerrain(null);
       setFading(false);
-      if (region) {
-        const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
-        const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
-        const camera = map.cameraForBounds(bounds, { padding, maxZoom, pitch: immersiveRegionSettings.pitch, bearing: 0 });
-        if (camera) map.flyTo({ ...camera, padding, pitch: immersiveRegionSettings.pitch, duration: reduce ? 0 : 1600 });
+      if (region && regionalCamera) {
+        map.flyTo(regionalCamera);
         await wait(reduce ? 0 : 1600);
       }
       if (!valid()) return;
