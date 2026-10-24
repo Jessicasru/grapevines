@@ -20,18 +20,21 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_admin: boolean
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id: string
+          is_admin?: boolean
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          is_admin?: boolean
         }
         Relationships: []
       }
@@ -156,56 +159,86 @@ export type Database = {
         Row: {
           address: string | null
           appointment_required: boolean
+          booking_required: boolean | null
           created_at: string
           created_by: string | null
+          enrichment_confidence: number | null
+          enrichment_evidence: Json | null
+          enrichment_status: string
           featured: boolean
           id: string
           languages: string[]
+          last_verified_at: string | null
           latitude: number
           longitude: number
           name: string
           opening_days: string | null
+          opening_hours: string | null
           photo_url: string | null
           region_id: string
+          review_status: string
           ships_abroad: boolean
+          sources: Json | null
           tasting_fee: string | null
           village: string | null
+          visitable: boolean | null
+          website: string | null
         }
         Insert: {
           address?: string | null
           appointment_required?: boolean
+          booking_required?: boolean | null
           created_at?: string
           created_by?: string | null
+          enrichment_confidence?: number | null
+          enrichment_evidence?: Json | null
+          enrichment_status?: string
           featured?: boolean
           id?: string
           languages?: string[]
+          last_verified_at?: string | null
           latitude: number
           longitude: number
           name: string
           opening_days?: string | null
+          opening_hours?: string | null
           photo_url?: string | null
           region_id: string
+          review_status?: string
           ships_abroad?: boolean
+          sources?: Json | null
           tasting_fee?: string | null
           village?: string | null
+          visitable?: boolean | null
+          website?: string | null
         }
         Update: {
           address?: string | null
           appointment_required?: boolean
+          booking_required?: boolean | null
           created_at?: string
           created_by?: string | null
+          enrichment_confidence?: number | null
+          enrichment_evidence?: Json | null
+          enrichment_status?: string
           featured?: boolean
           id?: string
           languages?: string[]
+          last_verified_at?: string | null
           latitude?: number
           longitude?: number
           name?: string
           opening_days?: string | null
+          opening_hours?: string | null
           photo_url?: string | null
           region_id?: string
+          review_status?: string
           ships_abroad?: boolean
+          sources?: Json | null
           tasting_fee?: string | null
           village?: string | null
+          visitable?: boolean | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -229,7 +262,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
