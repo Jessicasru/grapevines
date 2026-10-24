@@ -50,6 +50,20 @@
       "when": 1792870035368,
       "tag": "0006_csv_winery_import",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792870558238,
+      "tag": "0007_winery_duplicate_review",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792870693665,
+      "tag": "0008_duplicate_geography_index",
+      "breakpoints": true
     }
   ]
 }

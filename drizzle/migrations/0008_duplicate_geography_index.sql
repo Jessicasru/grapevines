@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS wineries_location_geography_gix ON public.wineries USING gist ((extensions.ST_SetSRID(extensions.ST_MakePoint(longitude,latitude),4326)::extensions.geography));
+CREATE INDEX IF NOT EXISTS wineries_region_idx ON public.wineries(region_id);

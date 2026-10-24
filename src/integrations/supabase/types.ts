@@ -43,6 +43,7 @@ export type Database = {
           author_name: string
           created_at: string
           id: string
+          merge_preserved: boolean
           note: string
           user_id: string | null
           verdict: string
@@ -53,6 +54,7 @@ export type Database = {
           author_name: string
           created_at?: string
           id?: string
+          merge_preserved?: boolean
           note?: string
           user_id?: string | null
           verdict: string
@@ -63,6 +65,7 @@ export type Database = {
           author_name?: string
           created_at?: string
           id?: string
+          merge_preserved?: boolean
           note?: string
           user_id?: string | null
           verdict?: string
@@ -266,17 +269,69 @@ export type Database = {
           },
         ]
       }
+      winery_duplicate_dismissals: {
+        Row: {
+          created_at: string
+          dismissed_by: string | null
+          winery_a: string
+          winery_b: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_by?: string | null
+          winery_a: string
+          winery_b: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_by?: string | null
+          winery_a?: string
+          winery_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winery_duplicate_dismissals_dismissed_by_fkey"
+            columns: ["dismissed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "winery_duplicate_dismissals_winery_a_fkey"
+            columns: ["winery_a"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "winery_duplicate_dismissals_winery_b_fkey"
+            columns: ["winery_b"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      dismiss_winery_duplicate: {
+        Args: { _a: string; _b: string }
+        Returns: undefined
+      }
       import_csv_wineries: {
         Args: { _rows: Json; _source: string }
         Returns: Json
       }
       import_osm_wineries: { Args: { _elements: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      merge_winery_duplicate: {
+        Args: { _keep: string; _remove: string }
+        Returns: string
+      }
+      normalized_winery_name: { Args: { _name: string }; Returns: string }
       region_boundaries: {
         Args: never
         Returns: {
@@ -288,6 +343,8 @@ export type Database = {
         Args: { _geojson: Json; _region_id: string }
         Returns: number
       }
+      winery_duplicate_candidates: { Args: never; Returns: Json }
+      winery_names_match: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -9,6 +9,53 @@ import { detailCamera } from "@/lib/detail-camera";
 const PUBLIC_TOKEN =
   "pk.eyJ1IjoicnVsYW5kanMiLCJhIjoiY212MWJqaXNrMDJjMzJ6cXhhOXYxZmc3dSJ9.TQSoAXLi8KWxJegOIJCvtQ";
 
+/** Compact comparison map, isolated from the public map's camera and carousel. */
+export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
+  const container = useRef<HTMLDivElement>(null);
+  const [failure, setFailure] = useState(false);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!container.current) return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(!!entry?.isIntersecting), { rootMargin: '200px' });
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    let map: MapboxMap | undefined;
+    let observer: ResizeObserver | undefined;
+    import("mapbox-gl").then(({ default: mb }) => {
+      if (cancelled || !container.current) return;
+      mb.accessToken = (import.meta.env['VITE_MAPBOX_TOKEN'] as string | undefined) ?? PUBLIC_TOKEN;
+      map = new mb.Map({ container: container.current, style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg", attributionControl: false, center: [wineries[0].longitude, wineries[0].latitude], zoom: 16 });
+      map.addControl(new mb.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors · DATAtourisme" }));
+      const fit = () => {
+        if (!map) return;
+        map.resize();
+        map.fitBounds([[Math.min(...wineries.map((w) => w.longitude)), Math.min(...wineries.map((w) => w.latitude))], [Math.max(...wineries.map((w) => w.longitude)), Math.max(...wineries.map((w) => w.latitude))]], { padding: 55, maxZoom: 18, duration: 0 });
+      };
+      observer = new ResizeObserver(fit);
+      observer.observe(container.current);
+      map.on('load', () => {
+        if (!map) return;
+        const styles = getComputedStyle(document.documentElement);
+        map.addSource('pair', { type: 'geojson', data: { type: 'FeatureCollection', features: wineries.map((w, i) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [w.longitude,w.latitude] }, properties: { n: String(i+1) } })) } });
+        const coincident = wineries[0].latitude === wineries[1].latitude && wineries[0].longitude === wineries[1].longitude;
+        for (const n of [1,2]) {
+          const translate: [number,number] = coincident ? [n === 1 ? -16 : 16,0] : [0,0];
+          const filter = ['==',['get','n'],String(n)] as const;
+          map.addLayer({ id: `pair-pin-${n}`, type: 'circle', source: 'pair', filter: [...filter], paint: { 'circle-radius': 13, 'circle-color': styles.getPropertyValue('--map-pin').trim(), 'circle-stroke-width': 2, 'circle-stroke-color': styles.getPropertyValue('--map-pin-foreground').trim(), 'circle-translate': translate } });
+          map.addLayer({ id: `pair-number-${n}`, type: 'symbol', source: 'pair', filter: [...filter], layout: { 'text-field': ['get','n'], 'text-font': ['Open Sans Bold','Arial Unicode MS Bold'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': styles.getPropertyValue('--map-pin-foreground').trim(), 'text-translate': translate } });
+        }
+        fit();
+      });
+    }).catch(() => setFailure(true));
+    return () => { cancelled = true; observer?.disconnect(); map?.remove(); };
+  }, [wineries, visible]);
+  return <div className="relative h-56 overflow-hidden rounded-lg border border-border bg-muted"><div ref={container} className="h-full w-full" aria-label="Map showing winery 1 and winery 2" />{failure && <p role="alert" className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">Map unavailable</p>}</div>;
+}
+
 type Props = {
   wineries: Winery[];
   /** Unrecommended wineries: quiet grey dots from zoom 11, below the pins. */

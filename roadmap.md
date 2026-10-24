@@ -1,3 +1,4 @@
+- [x] Add admin duplicate candidates, pair maps, manual merge and permanent dismissal; verify rules and flows.
 - [x] Add admin CSV imports with source matching, preserved details, boundary filtering, summaries and DATAtourisme credit; verify.
 - [x] Quiet Mapbox Standard styling and numbered clustered pins.
 - [x] Link winery selection between map, list, and preview; fit region bounds.
