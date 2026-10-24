@@ -1,4 +1,4 @@
-- [ ] Update 60 m / 300 m same-domain rules, dismiss excluded pending pairs, rerun automatic handling and verify counts.
+- [x] Update 60 m / 300 m same-domain rules, dismiss excluded pending pairs, rerun automatic handling and verify counts.
 - [x] Add mutually unique OSM–DATAtourisme preview rule, OSM coordinates with Undo, and manual source breakdown; verify.
 - [x] Add address preview/Apply, reversible merges, Merged/Dismissed history and keyboard duplicate review; verify.
 - [x] Add admin duplicate candidates, pair maps, manual merge and permanent dismissal; verify rules and flows.
