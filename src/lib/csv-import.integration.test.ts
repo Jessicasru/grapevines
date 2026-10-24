@@ -1,8 +1,9 @@
 import postgres from "postgres";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 const url = process.env["SUPABASE_DB_URL"];
 const sql = url ? postgres(url, { max: 1 }) : null;
+vi.setConfig({ testTimeout: 30000 });
 afterAll(async () => { await sql?.end(); });
 
 // Requires a managed admin session. Remove rows named CSV verification with
