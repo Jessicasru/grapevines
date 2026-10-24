@@ -78,7 +78,7 @@ type Props = {
   wineries: Winery[];
   /** Unrecommended wineries: zoom-scaled grey dots at every zoom, below the pins. */
   baseWineries: Winery[];
-  /** Region outlines, drawn as a faint fill below zoom 12. */
+  /** Wine-area polygons lead in the overview and fade as the user zooms in. */
   boundaries?: { id: string; geojson: Geometry }[] | undefined;
   /** When true, a map tap picks a location instead of selecting. */
   picking?: boolean;
@@ -164,15 +164,21 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
         const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
         const empty = { type: "FeatureCollection" as const, features: [] };
         m.addSource("boundaries", { type: "geojson", data: empty });
-        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", maxzoom: 12,
-          paint: { "fill-color": burgundy, "fill-opacity": 0.05 } });
-        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", maxzoom: 12,
-          paint: { "line-color": burgundy, "line-width": 1, "line-opacity": 0.45 } });
+        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries",
+          paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.35, 11, 0.2, 13, 0.08] } });
+        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries",
+          paint: { "line-color": burgundy, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 13, 1], "line-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.9, 13, 0.5] } });
         // Base layer first so every burgundy pin and cluster draws above it.
         m.addSource("base", { type: "geojson", data: empty });
         m.addLayer({
           id: "base-dot", type: "circle", source: "base",
-          paint: { "circle-color": styles.getPropertyValue("--map-base-dot").trim(), "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 11, 5, 14, 7], "circle-stroke-width": 1.5, "circle-stroke-color": white, "circle-opacity": 0.85 },
+          paint: {
+            "circle-color": styles.getPropertyValue("--map-base-dot").trim(),
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 10, 3, 12, 5, 14, 7],
+            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.25, 10, 0.5, 12, 0.9, 13, 1],
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 10, 0, 12, 1.5],
+            "circle-stroke-color": white,
+          },
         });
         m.addSource("picked", { type: "geojson", data: empty });
         // No slot: these layers draw above every basemap label.
@@ -329,13 +335,12 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
     const isSel = ["==", ["get", "id"], sel];
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const apply = (t: number) => {
-      const any = sel ? t : 0;
-      // 28px pin (r12 + 2px border) → 36px (r16 + 2px border) when selected; others fade to 60%.
+      // Selected pins grow; every recommendation stays fully visible.
       map.setPaintProperty("winery", "circle-radius", ["case", isSel, 12 + 4 * t, 12] as never);
       map.setPaintProperty("winery-shadow", "circle-radius", ["case", isSel, 17 + 4 * t, 17] as never);
       for (const [layer, prop] of [["winery", "circle-opacity"], ["winery", "circle-stroke-opacity"], ["winery-number", "text-opacity"]] as const)
-        map.setPaintProperty(layer, prop, ["case", isSel, 1, 1 - 0.4 * any] as never);
-      map.setPaintProperty("winery-shadow", "circle-opacity", ["case", isSel, 0.18, 0.18 * (1 - 0.4 * any)] as never);
+        map.setPaintProperty(layer, prop, 1);
+      map.setPaintProperty("winery-shadow", "circle-opacity", 0.18);
       map.setLayoutProperty("winery-number", "text-size", ["case", isSel, 12 + 2 * t, 12] as never);
     };
     let frame = 0;
