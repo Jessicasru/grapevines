@@ -2,11 +2,16 @@ import type { Geometry } from "geojson";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { listDuplicatePairs } from "@/lib/duplicates.functions";
 
 export type Region = Tables<"regions">;
 export type Winery = Tables<"wineries">;
 export type Recommendation = Tables<"recommendations">;
 export type SaveStatus = "want_to_visit" | "been_here";
+
+export const duplicatePairsQuery = (userId: string) => queryOptions({
+  queryKey: ["admin-duplicates", userId], queryFn: () => listDuplicatePairs(),
+});
 
 export const regionsQuery = queryOptions({
   queryKey: ["regions"],
