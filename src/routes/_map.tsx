@@ -155,15 +155,16 @@ function MapPage() {
       </section>
 
       <header className="map-glass map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 rounded-full p-1.5 shadow lg:left-1/2 lg:right-auto lg:w-[40rem] lg:-translate-x-1/2 lg:gap-2 lg:p-2">
-        <h1 className="sr-only">Cellar Door</h1>
+        <h1 className="sr-only">Grapevines</h1>
         <label className="sr-only" htmlFor="region">Region</label>
         <div className="relative w-[8.5rem] shrink-0 lg:w-[14rem]">
           <select
             id="region"
             value={regionId}
-            onChange={(e) => { setRegionId(e.target.value); setMe(null); setSelectedId(null); }}
+            onChange={(e) => { if (!e.target.value) backToWorld(); else { setRegionId(e.target.value); setMe(null); setSelectedId(null); } }}
             className="h-9 w-full min-w-0 appearance-none truncate rounded-full bg-secondary pl-3 pr-8 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-4 lg:pr-10 lg:text-base"
           >
+            <option value="">World</option>
             {regions.map((r) => (
               <option key={r.id} value={r.id}>{r.name}, {r.country}</option>
             ))}
@@ -182,6 +183,11 @@ function MapPage() {
         </button>
       </header>
 
+      {region && !detailId && <Button variant="secondary" onClick={backToWorld} className="map-glass absolute left-4 top-20 z-20 gap-2 rounded-full shadow lg:top-24"><ArrowLeft className="size-4" />Back to world</Button>}
+      {!region && <nav aria-label="Wine regions" className="absolute inset-x-4 bottom-10 z-20 flex flex-wrap justify-center gap-2">
+        {regions.map((r) => <Button key={r.id} variant="secondary" className="map-glass gap-2 rounded-full shadow" onClick={() => setRegionId(r.id)}><Globe2 className="size-4" />{r.name}</Button>)}
+      </nav>}
+
       {adding && (
         <div className="map-carousel-safe pointer-events-none absolute inset-x-0 bottom-0 z-20">
           <AddWineryPanel initialName={adding.name} picked={picked} regions={regions}
@@ -191,7 +197,7 @@ function MapPage() {
       )}
       <MyWineriesDrawer open={mineOpen} onOpenChange={setMineOpen} onPick={(id, region) => { setMineOpen(false); goTo(id, region); }} />
 
-      <motion.div animate={{ opacity: detailId || adding ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={detailId || adding ? true : undefined} aria-hidden={detailId || adding ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
+      <motion.div animate={{ opacity: !region || detailId || adding ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={!region || detailId || adding ? true : undefined} aria-hidden={!region || detailId || adding ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
         <div className="pointer-events-auto mb-2 flex justify-center gap-2 px-4">
           <Button variant="ghost"
             type="button"

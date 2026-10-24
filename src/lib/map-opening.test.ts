@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { openingMapPadding, regionOpeningCamera } from "@/components/WineMap";
+import { immersiveRegionSettings, openingMapPadding, regionOpeningCamera, worldPerimeter } from "@/components/WineMap";
 import type { Region } from "./wine";
 
 const region = { id: "alsace", center_lng: 7.35, center_lat: 48.2 } as Region;
 
 describe("opening region view", () => {
+  it("uses a 55 degree regional pitch", () => {
+    expect(immersiveRegionSettings.pitch).toBe(55);
+  });
+  it("uses moderate 1.3 terrain exaggeration", () => {
+    expect(immersiveRegionSettings.exaggeration).toBe(1.3);
+  });
+  it("samples the whole world including poles and antimeridian", () => {
+    expect(worldPerimeter()).toContainEqual([-180, -90]);
+    expect(worldPerimeter()).toContainEqual([180, 90]);
+    expect(worldPerimeter()).toContainEqual([180, 0]);
+  });
   it("fits grey and recommended records, excluding other regions", () => {
     expect(regionOpeningCamera(region, [
       { region_id: "alsace", longitude: 7.3, latitude: 48.1 },
