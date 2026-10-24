@@ -310,17 +310,18 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         }
         let adjustingPitch = false;
         m.on("zoom", () => {
+          if (adjustingPitch) return;
           latest.current.onZoomChange(m.getZoom());
-          if (adjustingPitch || detailRef.current || restoring.current) return;
+          if (detailRef.current || restoring.current) return;
+          adjustingPitch = true;
           const pitch = pitchAtZoom(m.getZoom());
           const terrain = m.getTerrain();
           if (pitch > 0 && !terrain) m.setTerrain({ source: "mapbox-dem", exaggeration: 1.3 });
           if (pitch === 0 && terrain) m.setTerrain(null);
           if (Math.abs(m.getPitch() - pitch) > 0.1) {
-            adjustingPitch = true;
             m.setPitch(pitch);
-            adjustingPitch = false;
           }
+          adjustingPitch = false;
         });
         latest.current.onZoomChange(m.getZoom());
         void paper;
