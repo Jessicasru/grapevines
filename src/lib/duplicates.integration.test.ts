@@ -35,7 +35,7 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
   async function api(path: string, body?: unknown, anonymous = false) {
     const session = JSON.parse(process.env['LOVABLE_BROWSER_SUPABASE_SESSION_JSON'] ?? '{}');
     const response = await fetch(`${process.env['SUPABASE_URL']}/rest/v1/${path}`, {
-      method: body === undefined ? 'GET' : 'POST', headers: { apikey: process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '', ...(!anonymous ? { Authorization: `Bearer ${session.access_token}` } : {}), 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: body === undefined ? undefined : JSON.stringify(body),
+      method: body === undefined ? 'GET' : 'POST', headers: { apikey: process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '', ...(!anonymous ? { Authorization: `Bearer ${session.access_token}` } : {}), 'Content-Type': 'application/json', Prefer: 'return=representation' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.message ?? String(response.status));
