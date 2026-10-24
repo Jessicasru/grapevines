@@ -77,8 +77,32 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
     const recs = await api(`recommendations?winery_id=eq.${a.id}&select=*`);
     expect(recs.map((r: any) => r.note).sort()).toEqual(['First note','Second note']);
     expect((await api(`saves?winery_id=eq.${a.id}&select=*`)).map((s: any) => s.status).sort()).toEqual(['been_here','want_to_visit']);
+    const history = await api('rpc/duplicate_review_history', {});
+    const entry = history.merged.find((h: any) => h.kept_id === a.id && h.removed_id === b.id);
+    expect(entry).toBeDefined();
+    await api('rpc/undo_winery_merge', { _id: entry.id });
+    const [originalA] = await api(`wineries?id=eq.${a.id}&select=*`);
+    const [originalB] = await api(`wineries?id=eq.${b.id}&select=*`);
+    expect(originalA.website).toBeNull();
+    expect(originalB.website).toBe('https://example.org');
+    expect(originalB.merged_into).toBeNull();
+    expect((await api(`recommendations?winery_id=eq.${b.id}&select=*`)).map((r: any) => r.note)).toEqual(['Second note']);
+    expect((await api(`saves?winery_id=eq.${b.id}&select=*`)).map((s: any) => s.status).sort()).toEqual(['been_here','want_to_visit']);
   });
   it('does not expose candidates to anonymous visitors', async () => {
     await expect(api('rpc/winery_duplicate_candidates',{},true)).rejects.toThrow();
+  });
+  it('previews without changing wineries and refuses Apply after the candidates change', async () => {
+    const preview = await api('rpc/preview_winery_duplicates', {});
+    expect(preview.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(preview.pairs.every((p: any) => ['same','different','manual'].includes(p.classification))).toBe(true);
+    const near = await fixture(50);
+    await expect(api('rpc/apply_winery_duplicates', { _preview: preview.id })).rejects.toThrow('The list changed');
+    expect((await api(`wineries?id=in.(${near.map(w => w.id).join(',')})&select=merged_into`)).map((w: any) => w.merged_into)).toEqual([null,null]);
+  });
+  it('keeps preview, Apply and history private to admins', async () => {
+    await expect(api('rpc/preview_winery_duplicates',{},true)).rejects.toThrow();
+    await expect(api('rpc/duplicate_review_history',{},true)).rejects.toThrow();
+    await expect(api('rpc/apply_winery_duplicates',{ _preview:crypto.randomUUID() },true)).rejects.toThrow();
   });
 });

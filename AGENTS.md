@@ -18,4 +18,4 @@
 - "Recommended" is computed client-side by isRecommended in src/lib/wine.ts so carousel, pins and tests share one rule.
 - Avatars are stored as small resized data URLs on profiles, because public storage buckets are blocked in this workspace.
 - CSV imports use Papa Parse and an authenticated server function calling an admin-checked database RPC; geography filtering and serialized source matching live in the RPC so repeat and concurrent uploads remain idempotent.
-- Duplicate matching, dismissals and row-locked merges live in admin-checked database RPCs; conflicting recommendations are flagged as merge-preserved so all original notes and authors survive without changing normal unique writes. Compact pair maps remain in WineMap.tsx.
+- Duplicate classification and mutations live in admin-checked database RPCs with serialized preview tokens; soft merges snapshot both wineries and linked rows, and guarded Undo avoids overwriting later edits. All winery reads exclude merged_into rows; history reads use dedicated admin RPCs. Compact pair maps remain in WineMap.tsx.

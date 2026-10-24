@@ -178,6 +178,7 @@ export type Database = {
           last_verified_at: string | null
           latitude: number
           longitude: number
+          merged_into: string | null
           name: string
           opening_days: string | null
           opening_hours: string | null
@@ -208,6 +209,7 @@ export type Database = {
           last_verified_at?: string | null
           latitude: number
           longitude: number
+          merged_into?: string | null
           name: string
           opening_days?: string | null
           opening_hours?: string | null
@@ -238,6 +240,7 @@ export type Database = {
           last_verified_at?: string | null
           latitude?: number
           longitude?: number
+          merged_into?: string | null
           name?: string
           opening_days?: string | null
           opening_hours?: string | null
@@ -261,6 +264,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "wineries_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "wineries_region_id_fkey"
             columns: ["region_id"]
             isOneToOne: false
@@ -273,18 +283,21 @@ export type Database = {
         Row: {
           created_at: string
           dismissed_by: string | null
+          reason: string
           winery_a: string
           winery_b: string
         }
         Insert: {
           created_at?: string
           dismissed_by?: string | null
+          reason?: string
           winery_a: string
           winery_b: string
         }
         Update: {
           created_at?: string
           dismissed_by?: string | null
+          reason?: string
           winery_a?: string
           winery_b?: string
         }
@@ -312,15 +325,104 @@ export type Database = {
           },
         ]
       }
+      winery_duplicate_previews: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          id: string
+          pairs: Json
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          pairs: Json
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          pairs?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      winery_merge_history: {
+        Row: {
+          after_state: Json
+          before_state: Json
+          created_at: string
+          id: string
+          kept_id: string
+          merged_by: string | null
+          mode: string
+          removed_id: string
+          undone_at: string | null
+        }
+        Insert: {
+          after_state: Json
+          before_state: Json
+          created_at?: string
+          id?: string
+          kept_id: string
+          merged_by?: string | null
+          mode?: string
+          removed_id: string
+          undone_at?: string | null
+        }
+        Update: {
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          id?: string
+          kept_id?: string
+          merged_by?: string | null
+          mode?: string
+          removed_id?: string
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winery_merge_history_kept_id_fkey"
+            columns: ["kept_id"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "winery_merge_history_removed_id_fkey"
+            columns: ["removed_id"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_winery_duplicates: { Args: { _preview: string }; Returns: Json }
       dismiss_winery_duplicate: {
         Args: { _a: string; _b: string }
         Returns: undefined
       }
+      duplicate_address: { Args: { _w: Json }; Returns: Json }
+      duplicate_classification: {
+        Args: { _a: Json; _b: Json }
+        Returns: string
+      }
+      duplicate_filled_count: { Args: { _w: Json }; Returns: number }
+      duplicate_house_matches: {
+        Args: { _a: string; _b: string }
+        Returns: boolean
+      }
+      duplicate_review_history: { Args: never; Returns: Json }
+      duplicate_state: { Args: { _a: string; _b: string }; Returns: Json }
+      duplicate_street: { Args: { _value: string }; Returns: string }
       import_csv_wineries: {
         Args: { _rows: Json; _source: string }
         Returns: Json
@@ -332,6 +434,7 @@ export type Database = {
         Returns: string
       }
       normalized_winery_name: { Args: { _name: string }; Returns: string }
+      preview_winery_duplicates: { Args: never; Returns: Json }
       region_boundaries: {
         Args: never
         Returns: {
@@ -339,10 +442,15 @@ export type Database = {
           id: string
         }[]
       }
+      restore_winery_duplicate: {
+        Args: { _a: string; _b: string }
+        Returns: undefined
+      }
       set_region_boundary: {
         Args: { _geojson: Json; _region_id: string }
         Returns: number
       }
+      undo_winery_merge: { Args: { _id: string }; Returns: undefined }
       winery_duplicate_candidates: { Args: never; Returns: Json }
       winery_names_match: { Args: { _a: string; _b: string }; Returns: boolean }
     }
