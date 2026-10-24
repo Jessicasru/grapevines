@@ -41,8 +41,13 @@ export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
         if (!map) return;
         const styles = getComputedStyle(document.documentElement);
         map.addSource('pair', { type: 'geojson', data: { type: 'FeatureCollection', features: wineries.map((w, i) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [w.longitude,w.latitude] }, properties: { n: String(i+1) } })) } });
-        map.addLayer({ id: 'pair-pins', type: 'circle', source: 'pair', paint: { 'circle-radius': 13, 'circle-color': styles.getPropertyValue('--map-pin').trim(), 'circle-stroke-width': 2, 'circle-stroke-color': styles.getPropertyValue('--map-pin-foreground').trim() } });
-        map.addLayer({ id: 'pair-numbers', type: 'symbol', source: 'pair', layout: { 'text-field': ['get','n'], 'text-font': ['Open Sans Bold','Arial Unicode MS Bold'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': styles.getPropertyValue('--map-pin-foreground').trim() } });
+        const coincident = wineries[0].latitude === wineries[1].latitude && wineries[0].longitude === wineries[1].longitude;
+        for (const n of [1,2]) {
+          const translate: [number,number] = coincident ? [n === 1 ? -16 : 16,0] : [0,0];
+          const filter = ['==',['get','n'],String(n)] as const;
+          map.addLayer({ id: `pair-pin-${n}`, type: 'circle', source: 'pair', filter: [...filter], paint: { 'circle-radius': 13, 'circle-color': styles.getPropertyValue('--map-pin').trim(), 'circle-stroke-width': 2, 'circle-stroke-color': styles.getPropertyValue('--map-pin-foreground').trim(), 'circle-translate': translate } });
+          map.addLayer({ id: `pair-number-${n}`, type: 'symbol', source: 'pair', filter: [...filter], layout: { 'text-field': ['get','n'], 'text-font': ['Open Sans Bold','Arial Unicode MS Bold'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': styles.getPropertyValue('--map-pin-foreground').trim(), 'text-translate': translate } });
+        }
         fit();
       });
     }).catch(() => setFailure(true));
