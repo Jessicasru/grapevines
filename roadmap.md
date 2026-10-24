@@ -1,4 +1,4 @@
-- [ ] Show grey and red wineries together on opening, scale grey dots with zoom, fit all regional wineries at max zoom 11, and verify mobile/desktop.
+- [x] Show grey and red wineries together on opening, scale grey dots with zoom, fit all regional wineries at max zoom 11, and verify mobile/desktop.
 - [x] Update 60 m / 300 m same-domain rules, dismiss excluded pending pairs, rerun automatic handling and verify counts.
 - [x] Add mutually unique OSM–DATAtourisme preview rule, OSM coordinates with Undo, and manual source breakdown; verify.
 - [x] Add address preview/Apply, reversible merges, Merged/Dismissed history and keyboard duplicate review; verify.
