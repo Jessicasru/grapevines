@@ -7,7 +7,7 @@ export type DuplicatePair = { winery_a: Winery; winery_b: Winery; distance_metre
 export type DuplicatePreview = { id: string; pairs: DuplicatePair[] };
 export type MergeEntry = { id: string; kept_id: string; removed_id: string; mode: string; created_at: string; wineries: Winery[] };
 export type DismissedEntry = { winery_a: Winery; winery_b: Winery; reason: string; created_at: string };
-export type DuplicateHistory = { merged: MergeEntry[]; dismissed: DismissedEntry[] };
+export type DuplicateHistory = { merged: MergeEntry[]; dismissed: DismissedEntry[]; last_run?: { dismissed: number; merged: number; manual_remaining: number } | null };
 export const listDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { data, error } = await context.supabase.rpc("winery_duplicate_candidates");
   if (error) throw new Error(error.message);
@@ -27,7 +27,9 @@ export const previewDuplicatePairs = createServerFn({ method: "POST" }).middlewa
 export const listDuplicateHistory = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { data, error } = await context.supabase.rpc("duplicate_review_history");
   if (error) throw new Error(error.message);
-  return data as unknown as DuplicateHistory;
+  const { data: run, error: runError } = await context.supabase.from("winery_duplicate_runs").select("summary").eq("run_key", "distance-60m-domain-300m").maybeSingle();
+  if (runError) throw new Error(runError.message);
+  return { ...(data as unknown as DuplicateHistory), last_run: run?.summary as DuplicateHistory['last_run'] };
 });
 const idSchema = z.object({ id: z.string().uuid() });
 export const applyDuplicatePreview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])

@@ -6,7 +6,7 @@ const sql = connection ? postgres(connection, { max: 1 }) : null;
 afterAll(async () => { await sql?.end(); });
 const osm = { id: 'osm', name: 'Domaine Émile Muller', sources: [{ source: 'osm' }] };
 const dt = { id: 'dt', name: 'Cave Emile Müller', sources: [{ source: 'datatourisme' }] };
-const pair = { winery_a: osm, winery_b: dt, distance_metres: 100 };
+const pair = { winery_a: osm, winery_b: dt, distance_metres: 60 };
 async function matches(candidate: unknown, pairs: unknown[]) {
   if (!sql) throw new Error('Missing database connection');
   const candidateJson = JSON.stringify(candidate), pairsJson = JSON.stringify(pairs);
@@ -14,13 +14,13 @@ async function matches(candidate: unknown, pairs: unknown[]) {
   return r?.['match'];
 }
 describe.skipIf(!sql)('unique OSM match rules', () => {
-  it('accepts a mutually unique pair at 100 metres in either order', async () => {
+  it('accepts a mutually unique pair at 60 metres in either order', async () => {
     expect(await matches(pair,[pair])).toBe(true);
     const reversed = { ...pair, winery_a: dt, winery_b: osm };
     expect(await matches(reversed,[reversed])).toBe(true);
   });
-  it('rejects a pair beyond 100 metres', async () => {
-    const far = { ...pair, distance_metres: 100.01 };
+  it('rejects a pair beyond 60 metres', async () => {
+    const far = { ...pair, distance_metres: 60.01 };
     expect(await matches(far,[far])).toBe(false);
   });
   it('requires every source on the OSM record to be osm', async () => {
@@ -37,7 +37,7 @@ describe.skipIf(!sql)('unique OSM match rules', () => {
     const short = { ...pair, winery_a: { ...osm, name: 'Domaine Jo Alpha' }, winery_b: { ...dt, name: 'Cave Jo Zulu' } };
     expect(await matches(short,[short])).toBe(false);
   });
-  it('rejects another DATAtourisme candidate even beyond the 100 metre rule limit', async () => {
+  it('rejects another DATAtourisme candidate even beyond the 60 metre rule limit', async () => {
     const other = { ...pair, winery_b: { ...dt, id: 'other-dt' }, distance_metres: 140 };
     expect(await matches(pair,[pair,other])).toBe(false);
   });

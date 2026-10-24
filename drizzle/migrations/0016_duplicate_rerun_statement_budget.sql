@@ -1,0 +1,1 @@
+ALTER FUNCTION public.apply_duplicate_distance_update(uuid) SET statement_timeout='120s';
