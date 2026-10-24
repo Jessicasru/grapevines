@@ -43,6 +43,13 @@
       "when": 1792867055773,
       "tag": "0005_osm_import",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792870035368,
+      "tag": "0006_csv_winery_import",
+      "breakpoints": true
     }
   ]
 }
