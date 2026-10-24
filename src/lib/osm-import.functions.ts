@@ -60,7 +60,7 @@ async function loadElements(): Promise<{ elements: unknown[]; server: string }> 
       }
     }
     if (round < ROUND_WAITS.length) {
-      const wait = Math.min(retryAfter ?? ROUND_WAITS[round], 300);
+      const wait = Math.min(retryAfter ?? ROUND_WAITS[round] ?? 60, 300);
       await new Promise((r) => setTimeout(r, wait * 1000));
     }
   }
