@@ -368,6 +368,11 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
     const source = map?.getSource("wine-regions") as GeoJSONSource | undefined;
     if (!ready || !source) return;
     source.setData({ type: "FeatureCollection", features: regionMarkerFeatures(regions) });
+    const countries = wineCountries(regions);
+    const labels = map?.getSource("country-labels") as GeoJSONSource | undefined;
+    labels?.setData({ type: "FeatureCollection", features: countries.flatMap((c) => c.bounds ? [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [(c.bounds[0][0] + c.bounds[1][0]) / 2, (c.bounds[0][1] + c.bounds[1][1]) / 2] }, properties: { name: c.name } }] : []) });
+    const filter = ["all", ["in", ["get", "iso_3166_1"], ["literal", countries.map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
+    for (const layer of ["country-fill", "country-line"]) map?.setFilter(layer, filter as never);
   }, [regions, ready]);
 
   useEffect(() => {
