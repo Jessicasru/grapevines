@@ -280,7 +280,7 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
         for (const layer of ["region-marker", "region-name", "boundary-fill"]) {
           m.on("click", layer, (e) => {
             if (latest.current.region) return;
-            const id = e.features?.[0]?.properties?.id;
+            const id = e.features?.[0]?.properties?.["id"];
             if (typeof id === "string") latest.current.onRegionSelect(id);
           });
         }
