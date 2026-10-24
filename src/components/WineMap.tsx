@@ -76,6 +76,11 @@ export function openingMapPadding(width: number, carouselHeight = 180) {
 
 export const immersiveRegionSettings = { pitch: 55, exaggeration: 1.3 };
 
+/** Missing region data can occur while a mounted map receives updated props. */
+export function regionMarkerFeatures(regions: Region[] | null | undefined) {
+  return (regions ?? []).map((r) => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [r.center_lng, r.center_lat] }, properties: { id: r.id, name: r.name } }));
+}
+
 /** Sample curved edges, not only corners, to fit the entire Natural Earth outline. */
 export function worldPerimeter(): [number, number][] {
   const points: [number, number][] = [];
@@ -332,7 +337,7 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
     const map = mapRef.current;
     const source = map?.getSource("wine-regions") as GeoJSONSource | undefined;
     if (!ready || !source) return;
-    source.setData({ type: "FeatureCollection", features: regions.map((r) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r.center_lng, r.center_lat] }, properties: { id: r.id, name: r.name } })) });
+    source.setData({ type: "FeatureCollection", features: regionMarkerFeatures(regions) });
   }, [regions, ready]);
 
   useEffect(() => {
