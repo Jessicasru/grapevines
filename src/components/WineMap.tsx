@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Region, Winery } from "@/lib/wine";
+import { wineCountries, type MapLocation, type MapBounds } from "@/lib/wine-countries";
 import { detailCamera } from "@/lib/detail-camera";
 
 // Public (pk.) token — safe in the browser. VITE_MAPBOX_TOKEN overrides it.
@@ -74,40 +75,41 @@ export function openingMapPadding(width: number, carouselHeight = 180) {
   return { top: desktop ? 96 : 80, bottom: Math.max(220, carouselHeight + 40), left: desktop ? 64 : 32, right: desktop ? 96 : 64 };
 }
 
-export const immersiveRegionSettings = { pitch: 55, exaggeration: 1.3 };
-
-/** Missing region data can occur while a mounted map receives updated props. */
+export const immersiveRegionSettings = { pitch: 50, exaggeration: 1.3 };
+export const worldBounds: MapBounds = [[-180, -50], [180, 60]];
+export function pitchAtZoom(zoom: number) { return Math.max(0, Math.min(50, (zoom - 8) * 50)); }
 export function regionMarkerFeatures(regions: Region[] | null | undefined) {
   return (regions ?? []).map((r) => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [r.center_lng, r.center_lat] }, properties: { id: r.id, name: r.name } }));
 }
-
-/** Sample curved edges, not only corners, to fit the entire Natural Earth outline. */
-export function worldPerimeter(): [number, number][] {
-  const points: [number, number][] = [];
-  for (let lat = -90; lat <= 90; lat += 10) points.push([-180, lat], [180, lat]);
-  for (let lng = -180; lng <= 180; lng += 10) points.push([lng, -90], [lng, 90]);
-  return points;
+function geometryBounds(geometry: Geometry): MapBounds | null {
+  const points: number[][] = [];
+  const collect = (value: unknown): void => {
+    if (!Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") points.push(value as number[]);
+    else value.forEach(collect);
+  };
+  if (geometry.type === "GeometryCollection") return null;
+  collect(geometry.coordinates);
+  if (!points.length) return null;
+  return [[Math.min(...points.map((p) => p[0] ?? 0)), Math.min(...points.map((p) => p[1] ?? 0))], [Math.max(...points.map((p) => p[0] ?? 0)), Math.max(...points.map((p) => p[1] ?? 0))]];
 }
-
-function fitWorld(map: MapboxMap) {
-  const padding = { top: 88, bottom: 96, left: 24, right: 24 };
-  map.fitBounds([[-180, -90], [180, 90]], { padding, duration: 0, bearing: 0, pitch: 0 });
-  let low = -4, high = 3;
+// Cover the canvas rather than letterboxing a 360-degree rectangle on tall screens.
+function worldZoom(map: MapboxMap) {
   const { clientWidth: width, clientHeight: height } = map.getContainer();
-  for (let i = 0; i < 18; i++) {
-    const zoom = (low + high) / 2;
-    map.jumpTo({ center: [0, 0], zoom, pitch: 0, bearing: 0, padding });
-    const fits = worldPerimeter().every((p) => {
-      const screen = map.project(p);
-      return screen.x >= padding.left && screen.x <= width - padding.right && screen.y >= padding.top && screen.y <= height - padding.bottom;
-    });
-    if (fits) low = zoom; else high = zoom;
-  }
-  map.jumpTo({ center: [0, 0], zoom: low, pitch: 0, bearing: 0, padding });
+  const mercatorY = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) / Math.PI) / 2;
+  const span = mercatorY(-50) - mercatorY(60);
+  return Math.log2(Math.max(width / 512, height / (512 * span)));
+}
+function fitWorld(map: MapboxMap, duration = 0) {
+  map.setMinZoom(worldZoom(map));
+  map.flyTo({ center: [0, 8.7], zoom: map.getMinZoom(), pitch: 0, bearing: 0, padding: 0, duration });
 }
 
 type Props = {
   regions: Region[];
+  location: MapLocation;
+  onLocationSelect: (location: MapLocation) => void;
+  onZoomChange: (zoom: number) => void;
   onRegionSelect: (id: string) => void;
   wineries: Winery[];
   /** Unrecommended wineries: hidden in the overview, fading in from zoom 10. */
@@ -126,16 +128,14 @@ type Props = {
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ location, onLocationSelect, onZoomChange, regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
-  const [fading, setFading] = useState(false);
   const [cameraReady, setCameraReady] = useState<string | null>(null);
-  const transitionId = useRef(0);
   const token = (import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined) ?? PUBLIC_TOKEN;
-  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect });
-  latest.current = { wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect };
+  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location });
+  latest.current = { wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location };
   const fittedRegion = useRef<string | null>(null);
   const previousCamera = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> } | null>(null);
   const activeDetail = useRef<string | null>(null);
@@ -150,10 +150,10 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
     const resize = () => {
       if (!map) return;
       map.resize();
-      if (!latest.current.region) {
-        if (map.getProjection().name === "naturalEarth") fitWorld(map);
-        return;
-      }
+      const oldMin = map.getMinZoom();
+      const atWorld = map.getZoom() <= oldMin + 0.05;
+      map.setMinZoom(worldZoom(map));
+      if (atWorld) { fitWorld(map); return; }
       if (detailRef.current || restoring.current) return;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding(openingMapPadding(map.getContainer().clientWidth, carousel?.height));
@@ -169,9 +169,10 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
         container: container.current,
         style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg",
         attributionControl: false,
-        projection: "naturalEarth",
+        projection: "mercator",
         renderWorldCopies: false,
-        minZoom: -4,
+        minZoom: 0,
+        maxBounds: worldBounds,
         center: [0, 0],
         zoom: 0,
       });
@@ -188,10 +189,12 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
       map.addControl(locate, "top-right");
       mapRef.current = map;
       resize();
+      map.touchZoomRotate.enableRotation();
       map.on("load", () => {
         const m = map;
         if (!m || cancelled) return;
         m.setTerrain(null);
+        m.setFog(null);
         const styles = getComputedStyle(document.documentElement);
         const burgundy = styles.getPropertyValue("--map-pin").trim();
         const paper = styles.getPropertyValue("--map-pin-foreground").trim();
@@ -208,19 +211,24 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
         m.addSource("mapbox-dem", { type: "raster-dem", url: "mapbox://mapbox.mapbox-terrain-dem-v1", tileSize: 512, maxzoom: 14 });
         m.addSource("wine-regions", { type: "geojson", data: empty });
         m.addSource("boundaries", { type: "geojson", data: empty });
-        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", maxzoom: 13.5,
-          // Disable the fill's implicit outline too, avoiding dark parcel seams.
-          paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0.45, 10, 0.3, 12, 0.12, 13.5, 0] } });
-        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", maxzoom: 13.5,
-          paint: { "line-color": burgundy, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 11, 1, 13, 0.5], "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0, 11, 0.4, 13, 0] } });
+        m.addSource("wine-countries", { type: "vector", url: "mapbox://mapbox.country-boundaries-v1" });
+        const countryFilter = ["all", ["in", ["get", "iso_3166_1"], ["literal", wineCountries(latest.current.regions).map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
+        m.addLayer({ id: "country-fill", type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.3, 4, 0] } });
+        m.addLayer({ id: "country-line", type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 4, 0.15] } });
+        m.addSource("country-labels", { type: "geojson", data: empty });
+        m.addLayer({ id: "country-name", type: "symbol", source: "country-labels", maxzoom: 4, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 15 }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 1, 4, 0] } });
+        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", minzoom: 3,
+          paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.3, 8, 0.3, 9, 0.06] } });
+        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", minzoom: 3,
+          paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.6, 8, 0.6, 9, 0.4] } });
         // Base layer first so every burgundy pin and cluster draws above it.
         m.addSource("base", { type: "geojson", data: empty });
         m.addLayer({
-          id: "base-dot", type: "circle", source: "base", minzoom: 10,
+          id: "base-dot", type: "circle", source: "base", minzoom: 8,
           paint: {
             "circle-color": styles.getPropertyValue("--map-base-dot").trim(),
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 2, 12, 4, 14, 7],
-            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0, 11, 0.6, 12, 1],
+            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
             "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 0, 13, 1.5],
             "circle-stroke-color": white,
           },
@@ -228,17 +236,19 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
         m.addSource("picked", { type: "geojson", data: empty });
         // No slot: these layers draw above every basemap label.
         m.addLayer({
-          id: "clusters", type: "circle", source: "wineries",
+          id: "clusters", minzoom: 8, type: "circle", source: "wineries",
           filter: ["has", "point_count"],
           paint: {
             "circle-color": white,
+            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
+            "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
             "circle-radius": 14,
             "circle-stroke-width": 2,
             "circle-stroke-color": burgundy,
           },
         });
         m.addLayer({
-          id: "cluster-count", type: "symbol", source: "wineries",
+          id: "cluster-count", minzoom: 8, type: "symbol", source: "wineries",
           filter: ["has", "point_count"],
           layout: {
             "text-field": ["to-string", ["get", "point_count"]],
@@ -247,25 +257,27 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
             "text-allow-overlap": true,
             "text-ignore-placement": true,
           },
-          paint: { "text-color": burgundy },
+          paint: { "text-color": burgundy, "text-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1] },
         });
         m.addLayer({
-          id: "winery-shadow", type: "circle", source: "wineries",
+          id: "winery-shadow", minzoom: 8, type: "circle", source: "wineries",
           filter: ["!", ["has", "point_count"]],
-          paint: { "circle-color": "#000000", "circle-opacity": 0.18, "circle-blur": 0.6, "circle-radius": 17, "circle-translate": [0, 2] },
+          paint: { "circle-color": "#000000", "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 0.18], "circle-blur": 0.6, "circle-radius": 17, "circle-translate": [0, 2] },
         });
         m.addLayer({
-          id: "winery", type: "circle", source: "wineries",
+          id: "winery", minzoom: 8, type: "circle", source: "wineries",
           filter: ["!", ["has", "point_count"]],
           paint: {
             "circle-color": burgundy,
+            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
+            "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1],
             "circle-radius": 12,
             "circle-stroke-width": 2,
             "circle-stroke-color": white,
           },
         });
         m.addLayer({
-          id: "winery-number", type: "symbol", source: "wineries",
+          id: "winery-number", minzoom: 8, type: "symbol", source: "wineries",
           filter: ["!", ["has", "point_count"]],
           layout: {
             "text-field": ["get", "n"],
@@ -274,25 +286,43 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
             "text-allow-overlap": true,
             "text-ignore-placement": true,
           },
-          paint: { "text-color": white },
+          paint: { "text-color": white, "text-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1] },
         });
         m.addLayer({
           id: "picked-pin", type: "circle", source: "picked",
           paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
         });
-        m.addLayer({ id: "region-marker", type: "circle", source: "wine-regions", paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white } });
-        m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-offset": [0, 1.5], "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2 } });
-        for (const layer of ["region-marker", "region-name", "boundary-fill"]) {
-          m.on("click", layer, (e) => {
-            if (latest.current.region) return;
-            const id = e.features?.[0]?.properties?.["id"];
-            if (typeof id === "string") latest.current.onRegionSelect?.(id);
-          });
-        }
-        for (const layer of ["region-marker", "region-name"]) {
+        m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", minzoom: 3, maxzoom: 9, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 1, 8, 1, 9, 0] } });
+        for (const layer of ["region-name", "boundary-fill"]) m.on("click", layer, (e) => {
+          if (m.getZoom() >= 9) return;
+          const id = e.features?.[0]?.properties?.["id"];
+          if (typeof id === "string") latest.current.onLocationSelect({ kind: "region", id });
+        });
+        for (const layer of ["country-fill", "country-name"]) m.on("click", layer, (e) => {
+          if (m.getZoom() >= 4) return;
+          const properties = e.features?.[0]?.properties;
+          const country = wineCountries(latest.current.regions).find((c) => c.iso === properties?.["iso_3166_1"] || c.name === properties?.["name"]);
+          if (country) latest.current.onLocationSelect({ kind: "country", name: country.name });
+        });
+        for (const layer of ["country-fill", "country-name", "boundary-fill", "region-name"]) {
           m.on("mouseenter", layer, () => { m.getCanvas().style.cursor = "pointer"; });
           m.on("mouseleave", layer, () => { m.getCanvas().style.cursor = ""; });
         }
+        let adjustingPitch = false;
+        m.on("zoom", () => {
+          latest.current.onZoomChange(m.getZoom());
+          if (adjustingPitch || detailRef.current || restoring.current) return;
+          const pitch = pitchAtZoom(m.getZoom());
+          const terrain = m.getTerrain();
+          if (pitch > 0 && !terrain) m.setTerrain({ source: "mapbox-dem", exaggeration: 1.3 });
+          if (pitch === 0 && terrain) m.setTerrain(null);
+          if (Math.abs(m.getPitch() - pitch) > 0.1) {
+            adjustingPitch = true;
+            m.setPitch(pitch);
+            adjustingPitch = false;
+          }
+        });
+        latest.current.onZoomChange(m.getZoom());
         void paper;
         m.on("click", "clusters", (e) => {
           const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as unknown as { geometry: { type: string; coordinates: [number, number] }; properties?: { cluster_id?: number } } | undefined;
@@ -329,7 +359,7 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
       map?.remove();
       mapRef.current = null;
       fittedRegion.current = null;
-      transitionId.current++;
+
     };
   }, [token]);
 
@@ -386,77 +416,24 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
 
   useEffect(() => {
     const map = mapRef.current;
-    const key = region?.id ?? "world";
-    if (!ready || !map || fittedRegion.current === key) return;
-    const initial = fittedRegion.current === null;
+    if (!ready || !map) return;
+    const key = JSON.stringify(location);
+    if (fittedRegion.current === key) return;
     fittedRegion.current = key;
-    setCameraReady(null);
-    const id = ++transitionId.current;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
-    const valid = () => transitionId.current === id && mapRef.current === map;
-    const settle = () => new Promise<void>((resolve) => {
-      const done = () => { window.clearTimeout(timeout); map.off("idle", done); resolve(); };
-      const timeout = window.setTimeout(done, 1800);
-      map.once("idle", done);
-    });
-    const controls = (enabled: boolean) => {
-      for (const control of [map.dragPan, map.scrollZoom, map.doubleClickZoom, map.boxZoom, map.keyboard]) {
-        if (enabled) control.enable(); else control.disable();
-      }
-      if (enabled) { map.dragRotate.enable(); map.touchZoomRotate.enable(); map.touchPitch.enable(); }
-      else { map.dragRotate.disable(); map.touchZoomRotate.disable(); map.touchPitch.disable(); }
-    };
-    void (async () => {
-      controls(false);
-      map.stop();
-      if (!region && !initial && !reduce) {
-        map.flyTo({ center: [0, 0], zoom: 0, pitch: 0, bearing: 0, padding: 0, duration: 900 });
-        await wait(900);
-      }
-      if (!valid()) return;
-      if (!initial || region) { setFading(true); await wait(reduce ? 0 : 150); }
-      if (!valid()) return;
-      const world = !region;
-      map.setTerrain(null);
-      map.setProjection(world ? "naturalEarth" : "globe");
-      const styles = getComputedStyle(document.documentElement);
-      if (world) {
-        map.setTerrain(null);
-        map.setFog(null);
-        fitWorld(map);
-      } else {
-        map.setTerrain({ source: "mapbox-dem", exaggeration: immersiveRegionSettings.exaggeration });
-        map.setFog({ color: styles.getPropertyValue("--map-fog").trim(), "high-color": styles.getPropertyValue("--map-atmosphere").trim(), "space-color": styles.getPropertyValue("--map-space").trim(), "horizon-blend": 0.15, "star-intensity": 0.12 });
-        map.jumpTo({ center: [region.center_lng, region.center_lat], zoom: 2, pitch: 0, bearing: 0 });
-      }
-      for (const layer of ["base-dot", "clusters", "cluster-count", "winery-shadow", "winery", "winery-number", "picked-pin"]) map.setLayoutProperty(layer, "visibility", world ? "none" : "visible");
-      for (const layer of ["region-marker", "region-name"]) map.setLayoutProperty(layer, "visibility", world ? "visible" : "none");
-      const regionalCamera = region ? (() => {
-        const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
-        const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
-        const camera = map.cameraForBounds(bounds, { padding, maxZoom, pitch: immersiveRegionSettings.pitch, bearing: 0 });
-        return camera ? { ...camera, padding, pitch: immersiveRegionSettings.pitch, duration: reduce ? 0 : 1600 } : null;
-      })() : null;
-      if (regionalCamera) map.flyTo({ ...regionalCamera, preloadOnly: true });
-      await settle();
-      if (!valid()) return;
-      // Projection changes can reinstate the style's cached terrain configuration.
-      if (world) map.setTerrain(null);
-      setFading(false);
-      if (region && regionalCamera) {
-        map.flyTo(regionalCamera);
-        await wait(reduce ? 0 : 1600);
-      }
-      if (!valid()) return;
-      controls(!!region);
-      setCameraReady(key);
-    })();
-  }, [region, wineries, baseWineries, ready]);
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200;
+    if (location.kind === "world") fitWorld(map, duration);
+    else {
+      const country = location.kind === "country" ? wineCountries(regions).find((c) => c.name === location.name) : null;
+      const boundary = location.kind === "region" ? boundaries?.find((b) => b.id === location.id) : null;
+      const bounds = country?.bounds ?? (boundary ? geometryBounds(boundary.geojson) : null) ?? (region ? regionOpeningCamera(region, [...wineries, ...baseWineries]).bounds : null);
+      if (bounds) map.fitBounds(bounds, { padding: location.kind === "region" ? openingMapPadding(map.getContainer().clientWidth) : 80, maxZoom: location.kind === "region" ? 11 : 6, duration, bearing: 0, pitch: 0 });
+    }
+    setCameraReady(key);
+  }, [location, region, regions, boundaries, wineries, baseWineries, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !region || cameraReady !== region.id) return;
+    if (!ready || !map || !cameraReady) return;
     const sel = selectedId ?? "";
     const isSel = ["==", ["get", "id"], sel];
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -465,8 +442,8 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
       map.setPaintProperty("winery", "circle-radius", ["case", isSel, 12 + 4 * t, 12] as never);
       map.setPaintProperty("winery-shadow", "circle-radius", ["case", isSel, 17 + 4 * t, 17] as never);
       for (const [layer, prop] of [["winery", "circle-opacity"], ["winery", "circle-stroke-opacity"], ["winery-number", "text-opacity"]] as const)
-        map.setPaintProperty(layer, prop, 1);
-      map.setPaintProperty("winery-shadow", "circle-opacity", 0.18);
+        map.setPaintProperty(layer, prop, ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1]);
+      map.setPaintProperty("winery-shadow", "circle-opacity", ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 0.18]);
       map.setLayoutProperty("winery-number", "text-size", ["case", isSel, 12 + 2 * t, 12] as never);
     };
     let frame = 0;
@@ -489,7 +466,7 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !region || cameraReady !== region.id) return;
+    if (!map || !ready || !cameraReady) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!detailId) {
       const camera = previousCamera.current;
@@ -528,7 +505,6 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
     const map = mapRef.current;
     const rect = container.current?.getBoundingClientRect();
     if (!map || !rect) return;
-    if (!latest.current.region) return;
     if (latest.current.picking) {
       const p = map.unproject([event.clientX - rect.left, event.clientY - rect.top]);
       latest.current.onPick?.([p.lng, p.lat]);
@@ -537,5 +513,5 @@ export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWiner
     const layers = ["winery", "clusters", "base-dot"].filter((layer) => map.getLayer(layer));
     const hits = layers.length ? map.queryRenderedFeatures([event.clientX - rect.left, event.clientY - rect.top], { layers }) : [];
     if (!hits.length) latest.current.onSelect(null);
-  }} /><div aria-hidden="true" className={`map-projection-veil absolute inset-0 bg-background ${fading ? "map-projection-veil-visible" : ""}`} /></div>;
+  }} /></div>;
 }
