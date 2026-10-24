@@ -94,11 +94,13 @@ function geometryBounds(geometry: Geometry): MapBounds | null {
   return [[Math.min(...points.map((p) => p[0] ?? 0)), Math.min(...points.map((p) => p[1] ?? 0))], [Math.max(...points.map((p) => p[0] ?? 0)), Math.max(...points.map((p) => p[1] ?? 0))]];
 }
 // Contain every wine country, rather than cropping continents on tall screens.
-function worldZoom(map: MapboxMap) {
-  const { clientWidth: width, clientHeight: height } = map.getContainer();
+export function worldOpeningZoom(width: number, height: number) {
   const mercatorY = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) / Math.PI) / 2;
   const span = mercatorY(-50) - mercatorY(60);
   return Math.log2(Math.min((width - 32) / 512, (height - 112) / (512 * span)));
+}
+function worldZoom(map: MapboxMap) {
+  return worldOpeningZoom(map.getContainer().clientWidth, map.getContainer().clientHeight);
 }
 function fitWorld(map: MapboxMap, duration = 0) {
   map.setTerrain(null);

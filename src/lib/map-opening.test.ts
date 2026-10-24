@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { immersiveRegionSettings, openingMapPadding, regionOpeningCamera, worldBounds, pitchAtZoom } from "@/components/WineMap";
+import { immersiveRegionSettings, openingMapPadding, regionOpeningCamera, worldBounds, pitchAtZoom, worldOpeningZoom } from "@/components/WineMap";
 import { wineCountries } from "./wine-countries";
 import type { Region } from "./wine";
 
 const region = { id: "alsace", center_lng: 7.35, center_lat: 48.2 } as Region;
 
 describe("opening region view", () => {
+  it("contains all longitudes on mobile rather than cropping Australia and Argentina", () => {
+    expect(512 * 2 ** worldOpeningZoom(390, 844)).toBeLessThanOrEqual(358.001);
+    expect(512 * 2 ** worldOpeningZoom(1894, 1482)).toBeLessThanOrEqual(1862.001);
+  });
   it("uses a 50 degree regional pitch", () => {
     expect(immersiveRegionSettings.pitch).toBe(50);
   });
