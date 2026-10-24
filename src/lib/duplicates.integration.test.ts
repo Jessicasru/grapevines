@@ -95,7 +95,7 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
   it('previews without changing wineries and refuses Apply after the candidates change', async () => {
     const preview = await api('rpc/preview_winery_duplicates', {});
     expect(preview.id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(preview.pairs.every((p: any) => ['same','different','manual'].includes(p.classification))).toBe(true);
+    expect(preview.pairs.every((p: any) => ['same','different','unique_osm','manual'].includes(p.classification))).toBe(true);
     const near = await fixture(50);
     await expect(api('rpc/apply_winery_duplicates', { _preview: preview.id })).rejects.toThrow('The list changed');
     expect((await api(`wineries?id=in.(${near.map(w => w.id).join(',')})&select=merged_into`)).map((w: any) => w.merged_into)).toEqual([null,null]);
