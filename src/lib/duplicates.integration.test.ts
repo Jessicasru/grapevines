@@ -77,6 +77,17 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
     const recs = await api(`recommendations?winery_id=eq.${a.id}&select=*`);
     expect(recs.map((r: any) => r.note).sort()).toEqual(['First note','Second note']);
     expect((await api(`saves?winery_id=eq.${a.id}&select=*`)).map((s: any) => s.status).sort()).toEqual(['been_here','want_to_visit']);
+    const history = await api('rpc/duplicate_review_history', {});
+    const entry = history.merged.find((h: any) => h.kept_id === a.id && h.removed_id === b.id);
+    expect(entry).toBeDefined();
+    await api('rpc/undo_winery_merge', { _id: entry.id });
+    const [originalA] = await api(`wineries?id=eq.${a.id}&select=*`);
+    const [originalB] = await api(`wineries?id=eq.${b.id}&select=*`);
+    expect(originalA.website).toBeNull();
+    expect(originalB.website).toBe('https://example.org');
+    expect(originalB.merged_into).toBeNull();
+    expect((await api(`recommendations?winery_id=eq.${b.id}&select=*`)).map((r: any) => r.note)).toEqual(['Second note']);
+    expect((await api(`saves?winery_id=eq.${b.id}&select=*`)).map((s: any) => s.status).sort()).toEqual(['been_here','want_to_visit']);
   });
   it('does not expose candidates to anonymous visitors', async () => {
     await expect(api('rpc/winery_duplicate_candidates',{},true)).rejects.toThrow();
