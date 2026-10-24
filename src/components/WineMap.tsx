@@ -56,9 +56,27 @@ export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
   return <div className="relative h-56 overflow-hidden rounded-lg border border-border bg-muted"><div ref={container} className="h-full w-full" aria-label="Map showing winery 1 and winery 2" />{failure && <p role="alert" className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">Map unavailable</p>}</div>;
 }
 
+/** The opening camera includes quiet dots as well as recommendations. */
+export function regionOpeningCamera(region: Region, wineries: Pick<Winery, "region_id" | "longitude" | "latitude">[]) {
+  const points = wineries.filter((w) => w.region_id === region.id && Number.isFinite(w.longitude) && Number.isFinite(w.latitude));
+  const coordinates = points.length ? points.map((w) => [w.longitude, w.latitude]) : [[region.center_lng, region.center_lat]];
+  const lngs = coordinates.map((p) => p[0] ?? region.center_lng);
+  const lats = coordinates.map((p) => p[1] ?? region.center_lat);
+  const bounds: [[number, number], [number, number]] = [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ];
+  return { bounds, maxZoom: 11 };
+}
+
+export function openingMapPadding(width: number, carouselHeight = 180) {
+  const desktop = width >= 1024;
+  return { top: desktop ? 96 : 80, bottom: Math.max(220, carouselHeight + 40), left: desktop ? 64 : 32, right: desktop ? 96 : 64 };
+}
+
 type Props = {
   wineries: Winery[];
-  /** Unrecommended wineries: quiet grey dots from zoom 11, below the pins. */
+  /** Unrecommended wineries: zoom-scaled grey dots at every zoom, below the pins. */
   baseWineries: Winery[];
   /** Region outlines, drawn as a faint fill below zoom 12. */
   boundaries?: { id: string; geojson: Geometry }[] | undefined;
@@ -96,14 +114,8 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
       if (!map) return;
       map.resize();
       if (detailRef.current || restoring.current) return;
-      const desktop = map.getContainer().clientWidth >= 1024;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
-      map.setPadding({
-        top: 96,
-        bottom: (carousel?.height ?? 220) + 40,
-        left: desktop ? 64 : 32,
-        right: desktop ? 96 : 64,
-      });
+      map.setPadding(openingMapPadding(map.getContainer().clientWidth, carousel?.height));
     };
     const observer = new ResizeObserver(resize);
     observer.observe(container.current);
@@ -159,8 +171,8 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
         // Base layer first so every burgundy pin and cluster draws above it.
         m.addSource("base", { type: "geojson", data: empty });
         m.addLayer({
-          id: "base-dot", type: "circle", source: "base", minzoom: 11,
-          paint: { "circle-color": "#8f8a84", "circle-radius": 5, "circle-stroke-width": 1.5, "circle-stroke-color": white, "circle-opacity": 0.85 },
+          id: "base-dot", type: "circle", source: "base",
+          paint: { "circle-color": styles.getPropertyValue("--map-base-dot").trim(), "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 11, 5, 14, 7], "circle-stroke-width": 1.5, "circle-stroke-color": white, "circle-opacity": 0.85 },
         });
         m.addSource("picked", { type: "geojson", data: empty });
         // No slot: these layers draw above every basemap label.
@@ -303,18 +315,12 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !region || fittedRegion.current === region.id) return;
+    const initial = fittedRegion.current === null;
     fittedRegion.current = region.id;
-    const points = wineries.filter((w) => w.region_id === region.id);
-    const coordinates: [number, number][] = points.length
-      ? points.map((w) => [w.longitude, w.latitude])
-      : [[region.center_lng, region.center_lat]];
-    const lngs = coordinates.map((p) => p[0]);
-    const lats = coordinates.map((p) => p[1]);
-    map.fitBounds([
-      [Math.min(...lngs), Math.min(...lats)],
-      [Math.max(...lngs), Math.max(...lats)],
-    ], { padding: map.getPadding(), maxZoom: 13, duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
-  }, [region, wineries, ready]);
+    const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
+    const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
+    map.fitBounds(bounds, { padding, maxZoom, duration: initial || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
+  }, [region, wineries, baseWineries, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
