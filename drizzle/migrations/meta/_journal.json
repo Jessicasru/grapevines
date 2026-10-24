@@ -64,6 +64,13 @@
       "when": 1792870693665,
       "tag": "0008_duplicate_geography_index",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792871476698,
+      "tag": "0009_reversible_duplicate_review",
+      "breakpoints": true
     }
   ]
 }
