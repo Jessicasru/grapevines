@@ -121,7 +121,7 @@ type Props = {
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ regions, onRegionSelect, wineries, baseWineries, boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -281,7 +281,7 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
           m.on("click", layer, (e) => {
             if (latest.current.region) return;
             const id = e.features?.[0]?.properties?.["id"];
-            if (typeof id === "string") latest.current.onRegionSelect(id);
+            if (typeof id === "string") latest.current.onRegionSelect?.(id);
           });
         }
         for (const layer of ["region-marker", "region-name"]) {
