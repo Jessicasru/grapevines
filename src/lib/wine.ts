@@ -2,7 +2,7 @@ import type { Geometry } from "geojson";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { listDuplicatePairs } from "@/lib/duplicates.functions";
+import { listDuplicatePairs, listDuplicateHistory } from "@/lib/duplicates.functions";
 
 export type Region = Tables<"regions">;
 export type Winery = Tables<"wineries">;
@@ -11,6 +11,9 @@ export type SaveStatus = "want_to_visit" | "been_here";
 
 export const duplicatePairsQuery = (userId: string) => queryOptions({
   queryKey: ["admin-duplicates", userId], queryFn: () => listDuplicatePairs(),
+});
+export const duplicateHistoryQuery = (userId: string) => queryOptions({
+  queryKey: ["admin-duplicate-history", userId], queryFn: () => listDuplicateHistory(),
 });
 
 export const regionsQuery = queryOptions({
@@ -35,7 +38,7 @@ export const boundariesQuery = queryOptions({
 export const wineriesQuery = queryOptions({
   queryKey: ["wineries"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("wineries").select("*, recommendations(verdict)").order("name");
+    const { data, error } = await supabase.from("wineries").select("*, recommendations(verdict)").is("merged_into", null).order("name");
     if (error) throw error;
     return data;
   },
@@ -69,6 +72,7 @@ export const wineryQuery = (id: string) =>
         .from("wineries")
         .select("*, regions(name, country), recommendations(*)")
         .eq("id", id)
+        .is("merged_into", null)
         .order("created_at", { referencedTable: "recommendations", ascending: false })
         .maybeSingle();
       if (error) throw error;
@@ -82,7 +86,8 @@ export const savesQuery = (userId: string) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("saves")
-        .select("*, wineries(id, name, address, village, photo_url, region_id)")
+        .select("*, wineries!inner(id, name, address, village, photo_url, region_id)")
+        .is("wineries.merged_into", null)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;

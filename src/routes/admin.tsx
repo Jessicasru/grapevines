@@ -60,6 +60,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("wineries")
         .select("id, name, village, review_status, enrichment_status, website, last_verified_at, created_at")
+        .is("merged_into", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

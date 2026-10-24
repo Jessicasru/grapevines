@@ -3,7 +3,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Winery } from "@/lib/wine";
 
-export type DuplicatePair = { winery_a: Winery; winery_b: Winery; distance_metres: number };
+export type DuplicatePair = { winery_a: Winery; winery_b: Winery; distance_metres: number; classification: 'same' | 'different' | 'manual'; address_a: { house: string; street: string }; address_b: { house: string; street: string } };
+export type DuplicatePreview = { id: string; pairs: DuplicatePair[] };
+export type MergeEntry = { id: string; kept_id: string; removed_id: string; mode: string; created_at: string; wineries: Winery[] };
+export type DismissedEntry = { winery_a: Winery; winery_b: Winery; reason: string; created_at: string };
+export type DuplicateHistory = { merged: MergeEntry[]; dismissed: DismissedEntry[] };
 export const listDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { data, error } = await context.supabase.rpc("winery_duplicate_candidates");
   if (error) throw new Error(error.message);
@@ -13,6 +17,33 @@ const pairSchema = z.object({ a: z.string().uuid(), b: z.string().uuid() }).refi
 export const dismissDuplicatePair = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => pairSchema.parse(input)).handler(async ({ data, context }) => {
     const { error } = await context.supabase.rpc("dismiss_winery_duplicate", { _a: data.a, _b: data.b });
+    if (error) throw new Error(error.message);
+  });
+export const previewDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data, error } = await context.supabase.rpc("preview_winery_duplicates");
+  if (error) throw new Error(error.message);
+  return data as unknown as DuplicatePreview;
+});
+export const listDuplicateHistory = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { data, error } = await context.supabase.rpc("duplicate_review_history");
+  if (error) throw new Error(error.message);
+  return data as unknown as DuplicateHistory;
+});
+const idSchema = z.object({ id: z.string().uuid() });
+export const applyDuplicatePreview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => idSchema.parse(input)).handler(async ({ data, context }) => {
+    const { data: result, error } = await context.supabase.rpc("apply_winery_duplicates", { _preview: data.id });
+    if (error) throw new Error(error.message);
+    return result as unknown as { merged: number; dismissed: number };
+  });
+export const undoDuplicateMerge = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => idSchema.parse(input)).handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("undo_winery_merge", { _id: data.id });
+    if (error) throw new Error(error.message);
+  });
+export const restoreDuplicatePair = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => pairSchema.parse(input)).handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("restore_winery_duplicate", { _a: data.a, _b: data.b });
     if (error) throw new Error(error.message);
   });
 export const mergeDuplicatePair = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
