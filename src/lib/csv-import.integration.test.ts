@@ -5,7 +5,9 @@ const url = process.env["SUPABASE_DB_URL"];
 const sql = url ? postgres(url, { max: 1 }) : null;
 afterAll(async () => { await sql?.end(); });
 
-describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
+// Requires a managed admin session. Remove rows named CSV verification with
+// datatourisme/overture provenance using the privileged data tool after a run.
+describe.skipIf(!sql || process.env['RUN_CSV_DATABASE_TESTS'] !== '1')("CSV database import rules", () => {
   async function check(run: (tx: postgres.TransactionSql, row: Record<string, string>) => Promise<void>) {
     if (!sql) throw new Error("Database test connection unavailable");
     const sid = crypto.randomUUID();
@@ -23,8 +25,6 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
       });
     } catch (error) {
       if (!(error instanceof Error) || error.message !== "ROLLBACK_CSV_TEST") throw error;
-    } finally {
-      await sql`delete from public.wineries where name = 'CSV verification' and exists (select 1 from jsonb_array_elements(sources) s where s->>'source_id' like ${sid + '%'})`;
     }
   }
   async function importRows(tx: postgres.TransactionSql, rows: Record<string, string>[], source = "datatourisme") {
