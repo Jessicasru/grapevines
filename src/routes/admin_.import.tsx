@@ -47,7 +47,6 @@ function ImportAdmin() {
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().finally(() => setTimeout(() => setChecked(true), 300));
   }, []);
@@ -58,15 +57,12 @@ function ImportAdmin() {
   async function run() {
     setBusy(true);
     setSummary(null);
-    setError(null);
     try {
       const s = await importAlsaceFromOsm();
       setSummary(s);
       qc.invalidateQueries({ queryKey: ["wineries"] });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Import failed.";
-      setError(msg);
-      toast.error("Import failed.");
+      toast.error(e instanceof Error ? e.message : "Import failed.");
     } finally {
       setBusy(false);
     }
@@ -91,12 +87,6 @@ function ImportAdmin() {
         <Button onClick={run} disabled={busy} className="mt-4 h-11 rounded-full px-5 font-semibold">
           <Download className="size-4" /> {busy ? "Importing…" : "Import Alsace from OpenStreetMap"}
         </Button>
-        {error && (
-          <pre className="mt-6 whitespace-pre-wrap rounded-lg bg-card p-4 text-sm text-destructive" style={cardShadow}>{error}</pre>
-        )}
-        {summary && (
-          <p className="mt-6 text-sm text-muted-foreground">Answered by <span className="font-medium text-foreground">{summary.server}</span></p>
-        )}
         {summary && (
           <dl className="mt-6 grid grid-cols-2 gap-3">
             {rows.map(([label, n]) => (
