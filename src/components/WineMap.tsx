@@ -74,6 +74,13 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
           : [7.35, 48.2],
         zoom: 8,
       });
+      map.addControl(
+        new mapboxgl.AttributionControl({
+          compact: true,
+          customAttribution: "© OpenStreetMap contributors",
+        }),
+        "bottom-right",
+      );
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       const locate = new mapboxgl.GeolocateControl({ trackUserLocation: false, showUserLocation: true });
       locate.on("geolocate", (e) => latest.current.onLocate([e.coords.longitude, e.coords.latitude]));
