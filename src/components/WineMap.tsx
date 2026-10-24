@@ -101,6 +101,8 @@ function worldZoom(map: MapboxMap) {
   return Math.log2(Math.min((width - 32) / 512, (height - 112) / (512 * span)));
 }
 function fitWorld(map: MapboxMap, duration = 0) {
+  map.setTerrain(null);
+  map.setProjection("mercator");
   map.setMinZoom(worldZoom(map));
   map.flyTo({ center: [0, 8.7], zoom: map.getMinZoom(), pitch: 0, bearing: 0, padding: 0, duration });
 }
@@ -429,7 +431,7 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
     if (fittedRegion.current === key) return;
     fittedRegion.current = key;
     const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200;
-    if (location.kind === "world") fitWorld(map, duration);
+    if (location.kind === "world") fitWorld(map, detailId ? duration : 0);
     else {
       const country = location.kind === "country" ? wineCountries(regions).find((c) => c.name === location.name) : null;
       const boundary = location.kind === "region" ? boundaries?.find((b) => b.id === location.id) : null;
