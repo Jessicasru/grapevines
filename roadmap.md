@@ -1,3 +1,4 @@
+- [ ] Apply zoom-based grey-dot and wine-area emphasis; preserve opening bounds and verify overview, zoom 11 and zoom 14 on phone/desktop.
 - [x] Show grey and red wineries together on opening, scale grey dots with zoom, fit all regional wineries at max zoom 11, and verify mobile/desktop.
 - [x] Update 60 m / 300 m same-domain rules, dismiss excluded pending pairs, rerun automatic handling and verify counts.
 - [x] Add mutually unique OSM–DATAtourisme preview rule, OSM coordinates with Undo, and manual source breakdown; verify.
