@@ -53,8 +53,8 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
     return rows;
   }
   async function candidates() { return await api('rpc/winery_duplicate_candidates',{}); }
-  it('includes pairs within 150m and excludes those beyond', async () => {
-    const near = await fixture(149), far = await fixture(151);
+  it('includes pairs within 60m and excludes those beyond', async () => {
+    const near = await fixture(59), far = await fixture(61);
     const pairs = await candidates();
     expect(pairs.some((p: any) => [p.winery_a.id,p.winery_b.id].includes(near[0]?.id) && [p.winery_a.id,p.winery_b.id].includes(near[1]?.id))).toBe(true);
     expect(pairs.some((p: any) => [p.winery_a.id,p.winery_b.id].includes(far[0]?.id) && [p.winery_a.id,p.winery_b.id].includes(far[1]?.id))).toBe(false);
