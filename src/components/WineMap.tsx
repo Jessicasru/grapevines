@@ -13,7 +13,15 @@ const PUBLIC_TOKEN =
 export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
   const container = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState(false);
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
+    if (!container.current) return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(!!entry?.isIntersecting), { rootMargin: '200px' });
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
     let cancelled = false;
     let map: MapboxMap | undefined;
     let observer: ResizeObserver | undefined;
@@ -39,7 +47,7 @@ export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
       });
     }).catch(() => setFailure(true));
     return () => { cancelled = true; observer?.disconnect(); map?.remove(); };
-  }, [wineries]);
+  }, [wineries, visible]);
   return <div className="relative h-56 overflow-hidden rounded-lg border border-border bg-muted"><div ref={container} className="h-full w-full" aria-label="Map showing winery 1 and winery 2" />{failure && <p role="alert" className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">Map unavailable</p>}</div>;
 }
 
