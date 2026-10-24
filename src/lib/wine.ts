@@ -1,3 +1,4 @@
+import type { Geometry } from "geojson";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -22,7 +23,7 @@ export const boundariesQuery = queryOptions({
   queryFn: async () => {
     const { data, error } = await supabase.rpc("region_boundaries");
     if (error) throw error;
-    return (data ?? []) as unknown as { id: string; geojson: GeoJSON.Geometry }[];
+    return (data ?? []) as unknown as { id: string; geojson: Geometry }[];
   },
 });
 

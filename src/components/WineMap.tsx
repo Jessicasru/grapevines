@@ -1,3 +1,4 @@
+import type { Geometry } from "geojson";
 import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, GeoJSONSource } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -13,7 +14,7 @@ type Props = {
   /** Unrecommended wineries: quiet grey dots from zoom 11, below the pins. */
   baseWineries: Winery[];
   /** Region outlines, drawn as a faint fill below zoom 12. */
-  boundaries?: { id: string; geojson: GeoJSON.Geometry }[];
+  boundaries?: { id: string; geojson: Geometry }[] | undefined;
   /** When true, a map tap picks a location instead of selecting. */
   picking?: boolean;
   picked?: [number, number] | null;
