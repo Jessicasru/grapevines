@@ -93,12 +93,12 @@ function geometryBounds(geometry: Geometry): MapBounds | null {
   if (!points.length) return null;
   return [[Math.min(...points.map((p) => p[0] ?? 0)), Math.min(...points.map((p) => p[1] ?? 0))], [Math.max(...points.map((p) => p[0] ?? 0)), Math.max(...points.map((p) => p[1] ?? 0))]];
 }
-// Cover the canvas rather than letterboxing a 360-degree rectangle on tall screens.
+// Contain every wine country, rather than cropping continents on tall screens.
 function worldZoom(map: MapboxMap) {
   const { clientWidth: width, clientHeight: height } = map.getContainer();
   const mercatorY = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) / Math.PI) / 2;
   const span = mercatorY(-50) - mercatorY(60);
-  return Math.log2(Math.max(width / 512, height / (512 * span)));
+  return Math.log2(Math.min((width - 32) / 512, (height - 112) / (512 * span)));
 }
 function fitWorld(map: MapboxMap, duration = 0) {
   map.setMinZoom(worldZoom(map));
@@ -172,7 +172,7 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         projection: "mercator",
         renderWorldCopies: false,
         minZoom: 0,
-        maxBounds: worldBounds,
+
         center: [0, 0],
         zoom: 0,
       });
@@ -213,10 +213,9 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         m.addSource("boundaries", { type: "geojson", data: empty });
         m.addSource("wine-countries", { type: "vector", url: "mapbox://mapbox.country-boundaries-v1" });
         const countryFilter = ["all", ["in", ["get", "iso_3166_1"], ["literal", wineCountries(latest.current.regions).map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
-        m.addLayer({ id: "country-fill", type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.3, 4, 0] } });
-        m.addLayer({ id: "country-line", type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 4, 0.15] } });
+        m.addLayer({ id: "country-fill", minzoom: 2, type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.3, 4, 0] } });
+        m.addLayer({ id: "country-line", minzoom: 2, type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 4, 0.15] } });
         m.addSource("country-labels", { type: "geojson", data: empty });
-        m.addLayer({ id: "country-name", type: "symbol", source: "country-labels", maxzoom: 4, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 15 }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 1, 4, 0] } });
         m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", minzoom: 3,
           paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.3, 8, 0.3, 9, 0.06] } });
         m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", minzoom: 3,
@@ -298,13 +297,13 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           const id = e.features?.[0]?.properties?.["id"];
           if (typeof id === "string") latest.current.onLocationSelect({ kind: "region", id });
         });
-        for (const layer of ["country-fill", "country-name"]) m.on("click", layer, (e) => {
+        for (const layer of ["country-fill"]) m.on("click", layer, (e) => {
           if (m.getZoom() >= 4) return;
           const properties = e.features?.[0]?.properties;
           const country = wineCountries(latest.current.regions).find((c) => c.iso === properties?.["iso_3166_1"] || c.name === properties?.["name"]);
           if (country) latest.current.onLocationSelect({ kind: "country", name: country.name });
         });
-        for (const layer of ["country-fill", "country-name", "boundary-fill", "region-name"]) {
+        for (const layer of ["country-fill", "boundary-fill", "region-name"]) {
           m.on("mouseenter", layer, () => { m.getCanvas().style.cursor = "pointer"; });
           m.on("mouseleave", layer, () => { m.getCanvas().style.cursor = ""; });
         }
@@ -321,6 +320,12 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
             if (pitch === 0 && terrain) m.setTerrain(null);
             if (Math.abs(m.getPitch() - pitch) > 0.1) m.setPitch(pitch);
           });
+        });
+        m.on("moveend", () => {
+          const center = m.getCenter();
+          const lat = Math.max(-50, Math.min(60, center.lat));
+          const lng = Math.max(-180, Math.min(180, center.lng));
+          if (lat !== center.lat || lng !== center.lng) m.jumpTo({ center: [lng, lat] });
         });
         latest.current.onZoomChange(m.getZoom());
         void paper;
@@ -369,8 +374,6 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
     if (!ready || !source) return;
     source.setData({ type: "FeatureCollection", features: regionMarkerFeatures(regions) });
     const countries = wineCountries(regions);
-    const labels = map?.getSource("country-labels") as GeoJSONSource | undefined;
-    labels?.setData({ type: "FeatureCollection", features: countries.flatMap((c) => c.bounds ? [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [(c.bounds[0][0] + c.bounds[1][0]) / 2, (c.bounds[0][1] + c.bounds[1][1]) / 2] }, properties: { name: c.name } }] : []) });
     const filter = ["all", ["in", ["get", "iso_3166_1"], ["literal", countries.map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
     for (const layer of ["country-fill", "country-line"]) map?.setFilter(layer, filter as never);
   }, [regions, ready]);
