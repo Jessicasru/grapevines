@@ -25,7 +25,9 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
     }
   }
   async function importRows(tx: postgres.TransactionSql, rows: Record<string, string>[], source = "datatourisme") {
+    await tx`set local role authenticated`;
     const [result] = await tx`select public.import_csv_wineries(${source}, ${JSON.stringify(rows)}::jsonb) as summary`;
+    await tx`reset role`;
     return result?.['summary'];
   }
   async function stored(tx: postgres.TransactionSql, sid: string) {
