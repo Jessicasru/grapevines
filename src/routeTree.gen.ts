@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MapRouteImport } from './routes/_map'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as MapIndexRouteImport } from './routes/_map.index'
 import { Route as MapWineriesIdRouteImport } from './routes/_map.wineries.$id'
 import { Route as WineriesIdRecommendRouteImport } from './routes/wineries.$id_.recommend'
 
 const MapRoute = MapRouteImport.update({
   id: '/_map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MapIndexRoute = MapIndexRouteImport.update({
@@ -36,10 +42,12 @@ const WineriesIdRecommendRoute = WineriesIdRecommendRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof MapIndexRoute
+  '/admin': typeof AdminRoute
   '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRoutesByTo {
+  '/admin': typeof AdminRoute
   '/': typeof MapIndexRoute
   '/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id/recommend': typeof WineriesIdRecommendRoute
@@ -47,18 +55,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_map': typeof MapRouteWithChildren
+  '/admin': typeof AdminRoute
   '/_map/': typeof MapIndexRoute
   '/_map/wineries/$id': typeof MapWineriesIdRoute
   '/wineries/$id_/recommend': typeof WineriesIdRecommendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/wineries/$id' | '/wineries/$id/recommend'
+  fullPaths: '/' | '/admin' | '/wineries/$id' | '/wineries/$id/recommend'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/wineries/$id' | '/wineries/$id/recommend'
+  to: '/admin' | '/' | '/wineries/$id' | '/wineries/$id/recommend'
   id:
     | '__root__'
     | '/_map'
+    | '/admin'
     | '/_map/'
     | '/_map/wineries/$id'
     | '/wineries/$id_/recommend'
@@ -66,6 +76,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   MapRoute: typeof MapRouteWithChildren
+  AdminRoute: typeof AdminRoute
   WineriesIdRecommendRoute: typeof WineriesIdRecommendRoute
 }
 
@@ -76,6 +87,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_map/': {
@@ -116,6 +134,7 @@ const MapRouteWithChildren = MapRoute._addFileChildren(MapRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRouteWithChildren,
+  AdminRoute: AdminRoute,
   WineriesIdRecommendRoute: WineriesIdRecommendRoute,
 }
 export const routeTree = rootRouteImport
