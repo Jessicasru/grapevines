@@ -349,6 +349,63 @@ export type Database = {
         }
         Relationships: []
       }
+      winery_duplicate_restorations: {
+        Row: {
+          created_at: string
+          restored_by: string | null
+          winery_a: string
+          winery_b: string
+        }
+        Insert: {
+          created_at?: string
+          restored_by?: string | null
+          winery_a: string
+          winery_b: string
+        }
+        Update: {
+          created_at?: string
+          restored_by?: string | null
+          winery_a?: string
+          winery_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "winery_duplicate_restorations_winery_a_fkey"
+            columns: ["winery_a"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "winery_duplicate_restorations_winery_b_fkey"
+            columns: ["winery_b"]
+            isOneToOne: false
+            referencedRelation: "wineries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      winery_duplicate_runs: {
+        Row: {
+          created_at: string
+          id: string
+          run_key: string
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          run_key: string
+          summary: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          run_key?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       winery_merge_history: {
         Row: {
           after_state: Json
@@ -405,6 +462,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_duplicate_distance_update: {
+        Args: { _old_preview: string }
+        Returns: Json
+      }
       apply_winery_duplicates: { Args: { _preview: string }; Returns: Json }
       dismiss_winery_duplicate: {
         Args: { _a: string; _b: string }
@@ -414,6 +475,10 @@ export type Database = {
       duplicate_classification: {
         Args: { _a: Json; _b: Json }
         Returns: string
+      }
+      duplicate_distance_qualifies: {
+        Args: { _distance: number; _website_a: string; _website_b: string }
+        Returns: boolean
       }
       duplicate_filled_count: { Args: { _w: Json }; Returns: number }
       duplicate_has_source: {
@@ -432,6 +497,7 @@ export type Database = {
         Args: { _pair: Json; _pairs: Json }
         Returns: boolean
       }
+      duplicate_website_domain: { Args: { _website: string }; Returns: string }
       import_csv_wineries: {
         Args: { _rows: Json; _source: string }
         Returns: Json

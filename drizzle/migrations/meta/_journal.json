@@ -92,6 +92,13 @@
       "when": 1792872062395,
       "tag": "0012_unique_osm_merge_operation",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792872893438,
+      "tag": "0013_duplicate_distance_60m_domain_exception",
+      "breakpoints": true
     }
   ]
 }
