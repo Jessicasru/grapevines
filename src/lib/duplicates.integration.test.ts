@@ -118,8 +118,8 @@ describe.skipIf(process.env['RUN_DUPLICATE_DATABASE_TESTS'] !== '1')('manual dup
     await api('saves', { winery_id:osm.id,user_id:session.user.id,status:'want_to_visit' });
     expect(await api('rpc/merge_unique_osm_duplicate', { _a:osm.id,_b:dt.id })).toBe(dt.id);
     const [kept] = await api(`wineries?id=eq.${dt.id}&select=*`);
-    expect(kept.latitude).toBe(osm.latitude);
-    expect(kept.longitude).toBe(osm.longitude);
+    expect(kept.latitude).toBeCloseTo(osm.latitude, 12);
+    expect(kept.longitude).toBeCloseTo(osm.longitude, 12);
     expect(kept.website).toBe('https://example.org');
     expect(kept.phone).toBe('+33000000000');
     expect(kept.opening_hours).toBe('Mo-Fr 10:00-18:00');

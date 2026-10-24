@@ -10,6 +10,7 @@ const pair = { winery_a: osm, winery_b: dt, distance_metres: 100 };
 async function matches(candidate: unknown, pairs: unknown[]) {
   if (!sql) throw new Error('Missing database connection');
   const [r] = await sql`select public.duplicate_unique_osm(${sql.json(candidate as any)}::jsonb,${sql.json(pairs as any)}::jsonb) as match`;
+  if (r?.['match'] === false) console.log('rejected rule input', JSON.stringify(candidate), JSON.stringify(pairs));
   return r?.['match'];
 }
 describe.skipIf(!sql)('unique OSM match rules', () => {
