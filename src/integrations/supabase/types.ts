@@ -165,6 +165,7 @@ export type Database = {
           booking_required: boolean | null
           created_at: string
           created_by: string | null
+          description: string | null
           enrichment_confidence: number | null
           enrichment_evidence: Json | null
           enrichment_status: string
@@ -194,6 +195,7 @@ export type Database = {
           booking_required?: boolean | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           enrichment_confidence?: number | null
           enrichment_evidence?: Json | null
           enrichment_status?: string
@@ -223,6 +225,7 @@ export type Database = {
           booking_required?: boolean | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           enrichment_confidence?: number | null
           enrichment_evidence?: Json | null
           enrichment_status?: string
@@ -268,6 +271,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      import_csv_wineries: {
+        Args: { _rows: Json; _source: string }
+        Returns: Json
+      }
       import_osm_wineries: { Args: { _elements: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       region_boundaries: {

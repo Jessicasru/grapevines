@@ -77,7 +77,7 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
       map.addControl(
         new mapboxgl.AttributionControl({
           compact: true,
-          customAttribution: "© OpenStreetMap contributors",
+          customAttribution: "© OpenStreetMap contributors · DATAtourisme",
         }),
         "bottom-right",
       );

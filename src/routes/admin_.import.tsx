@@ -8,16 +8,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { importAlsaceFromOsm, type ImportSummary } from "@/lib/osm-import.functions";
 import { Button } from "@/components/ui/button";
+import { CsvImporter } from "@/components/CsvImporter";
 
 export const Route = createFileRoute("/admin_/import")({
   head: () => ({
     meta: [
-      { title: "OpenStreetMap import — Cellar Door" },
-      { name: "description", content: "Import wineries from OpenStreetMap." },
+      { title: "Winery imports — Grapevines" },
+      { name: "description", content: "Import Alsace wineries from OpenStreetMap, DATAtourisme or Overture CSV files." },
       { name: "robots", content: "noindex" },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "OpenStreetMap import — Cellar Door" },
-      { property: "og:description", content: "Import wineries from OpenStreetMap." },
+      { property: "og:title", content: "Winery imports — Grapevines" },
+      { property: "og:description", content: "Import Alsace wineries from OpenStreetMap, DATAtourisme or Overture CSV files." },
       { name: "twitter:card", content: "summary" },
     ],
   }),
@@ -107,6 +108,7 @@ function ImportAdmin() {
             ))}
           </dl>
         )}
+        <CsvImporter />
       </div>
     </div>
   );
