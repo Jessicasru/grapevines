@@ -190,6 +190,9 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
       locate.on("geolocate", (e) => latest.current.onLocate([e.coords.longitude, e.coords.latitude]));
       map.addControl(locate, "top-right");
       mapRef.current = map;
+      // Mapbox otherwise raises Mercator zoom to fill a portrait canvas, cropping continents.
+      // Keep our own minimum zoom and center constraints while allowing a contained world.
+      map.transform._allowWorldUnderZoom = true;
       resize();
       map.touchZoomRotate.enableRotation();
       map.on("load", () => {
