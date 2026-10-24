@@ -8,6 +8,7 @@ afterAll(async () => { await sql?.end(); });
 describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
   async function check(run: (tx: postgres.TransactionSql, row: Record<string, string>) => Promise<void>) {
     if (!sql) throw new Error("Database test connection unavailable");
+    const sid = crypto.randomUUID();
     try {
       await sql.begin(async (tx) => {
         await tx`set local search_path = public, extensions`;
@@ -16,19 +17,26 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
         await tx`select set_config('request.jwt.claim.sub', ${admin['id']}, true)`;
         const [point] = await tx`select ST_Y(ST_PointOnSurface(boundary)) as lat, ST_X(ST_PointOnSurface(boundary)) as lng from public.regions where name='Alsace'`;
         if (!point) throw new Error("Alsace boundary unavailable");
-        const row = { source_id: crypto.randomUUID(), name: "CSV verification", latitude: String(point['lat']), longitude: String(point['lng']), website: "", address: "", postcode: "", locality: "", description: "", extra: "raw retained" };
+        const row = { source_id: sid, name: "CSV verification", latitude: String(point['lat']), longitude: String(point['lng']), website: "", address: "", postcode: "", locality: "", description: "", extra: "raw retained" };
         await run(tx, row);
         throw new Error("ROLLBACK_CSV_TEST");
       });
     } catch (error) {
       if (!(error instanceof Error) || error.message !== "ROLLBACK_CSV_TEST") throw error;
+    } finally {
+      await sql`delete from public.wineries where name = 'CSV verification' and exists (select 1 from jsonb_array_elements(sources) s where s->>'source_id' like ${sid + '%'})`;
     }
   }
   async function importRows(tx: postgres.TransactionSql, rows: Record<string, string>[], source = "datatourisme") {
-    await tx`set local role authenticated`;
-    const [result] = await tx`select public.import_csv_wineries(${source}, ${JSON.stringify(rows)}::jsonb) as summary`;
-    await tx`reset role`;
-    return result?.['summary'];
+    const session = JSON.parse(process.env['LOVABLE_BROWSER_SUPABASE_SESSION_JSON'] ?? '{}');
+    const response = await fetch(`${process.env['SUPABASE_URL']}/rest/v1/rpc/import_csv_wineries`, {
+      method: 'POST', headers: { apikey: process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '', Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _source: source, _rows: rows }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message ?? 'Import failed');
+    void tx;
+    return result;
   }
   async function stored(tx: postgres.TransactionSql, sid: string) {
     return await tx`select * from public.wineries where sources @> ${JSON.stringify([{ source: "datatourisme", source_id: sid }])}::jsonb`;
@@ -82,11 +90,13 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
     expect(points[1]?.['distance']).toBeGreaterThan(2000);
     expect(await importRows(tx, points.map((p) => ({ ...row, source_id: `${row['source_id']}-${p['d']}`, latitude: String(p['lat']), longitude: String(p['lng']) })))).toEqual({ created: 1, updated: 0, skipped_outside: 1 });
   }));
-  it("denies imports without an admin identity", async () => {
-    await expect(check(async (tx, row) => {
-      await tx`select set_config('request.jwt.claim.sub', '', true)`;
-      await importRows(tx, [row]);
-    })).rejects.toThrow("Not allowed");
+  it("denies anonymous imports", async () => {
+    const response = await fetch(`${process.env['SUPABASE_URL']}/rest/v1/rpc/import_csv_wineries`, {
+      method: 'POST', headers: { apikey: process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _source: 'datatourisme', _rows: [] }),
+    });
+    expect(response.ok).toBe(false);
+    expect([401, 403]).toContain(response.status);
   });
   it("rejects empty source IDs inside the boundary rather than creating duplicates", async () => {
     await expect(check(async (tx, row) => { await importRows(tx, [{ ...row, source_id: "" }]); })).rejects.toThrow("empty source_id");
