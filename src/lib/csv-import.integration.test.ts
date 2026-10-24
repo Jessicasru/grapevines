@@ -33,11 +33,11 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
   it("re-imports the same source identity without duplicates", async () => check(async (tx, row) => {
     expect(await importRows(tx, [row])).toEqual({ created: 1, updated: 0, skipped_outside: 0 });
     expect(await importRows(tx, [row])).toEqual({ created: 0, updated: 1, skipped_outside: 0 });
-    expect((await stored(tx, row.source_id)).length).toBe(1);
+    expect((await stored(tx, row['source_id'] ?? '')).length).toBe(1);
   }));
   it("assigns new wineries to Alsace with pending review and enrichment", async () => check(async (tx, row) => {
     await importRows(tx, [row]);
-    const [winery] = await stored(tx, row.source_id);
+    const [winery] = await stored(tx, row['source_id'] ?? '');
     const [region] = await tx`select id from public.regions where name='Alsace'`;
     expect(winery?.['region_id']).toBe(region?.['id']);
     expect(winery?.['review_status']).toBe("pending");
@@ -47,20 +47,20 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
     it(`fills empty ${field} without overwriting a stored value`, async () => check(async (tx, row) => {
       await importRows(tx, [row]);
       await importRows(tx, [{ ...row, [field]: "Original value" }]);
-      expect((await stored(tx, row.source_id))[0]?.[field]).toBe("Original value");
+      expect((await stored(tx, row['source_id'] ?? ''))[0]?.[field]).toBe("Original value");
       await importRows(tx, [{ ...row, [field]: "Replacement value" }]);
-      expect((await stored(tx, row.source_id))[0]?.[field]).toBe("Original value");
+      expect((await stored(tx, row['source_id'] ?? ''))[0]?.[field]).toBe("Original value");
     }));
   }
   it("stores all raw columns and refreshes a single provenance entry", async () => check(async (tx, row) => {
     await importRows(tx, [row]);
     const updated = { ...row, extra: "updated raw" };
     await importRows(tx, [updated]);
-    const sources = (await stored(tx, row.source_id))[0]?.['sources'];
+    const sources = (await stored(tx, row['source_id'] ?? ''))[0]?.['sources'];
     expect(sources).toHaveLength(1);
     expect(sources[0].raw).toEqual(updated);
     expect(sources[0].source).toBe("datatourisme");
-    expect(sources[0].source_id).toBe(row.source_id);
+    expect(sources[0].source_id).toBe(row['source_id']);
     expect(Number.isNaN(Date.parse(sources[0].imported_at))).toBe(false);
   }));
   it("uses both source and source_id as the identity", async () => check(async (tx, row) => {
@@ -77,7 +77,7 @@ describe.skipIf(!sql)("CSV database import rules (rolled back)", () => {
     from north cross join (values (1990),(2010)) as distances(d) order by d`;
     expect(points[0]?.['distance']).toBeLessThan(2000);
     expect(points[1]?.['distance']).toBeGreaterThan(2000);
-    expect(await importRows(tx, points.map((p) => ({ ...row, source_id: `${row.source_id}-${p['d']}`, latitude: String(p['lat']), longitude: String(p['lng']) })))).toEqual({ created: 1, updated: 0, skipped_outside: 1 });
+    expect(await importRows(tx, points.map((p) => ({ ...row, source_id: `${row['source_id']}-${p['d']}`, latitude: String(p['lat']), longitude: String(p['lng']) })))).toEqual({ created: 1, updated: 0, skipped_outside: 1 });
   }));
   it("denies imports without an admin identity", async () => {
     await expect(check(async (tx, row) => {
