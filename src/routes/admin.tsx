@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, X } from "lucide-react";
 import { toast } from "sonner";
@@ -24,10 +25,33 @@ export const Route = createFileRoute("/admin")({
 
 const cardShadow = { boxShadow: "var(--shadow-soft)" } as const;
 
+function HiddenNotFound() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div className="mt-6">
+          <Link to="/" className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+            Go home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminPage() {
-  const { user, profile, requireAuth } = useAuth();
+  const { user, profile } = useAuth();
   const qc = useQueryClient();
   const isAdmin = !!profile?.is_admin;
+  const [sessionChecked, setSessionChecked] = useState(false);
+  useEffect(() => {
+    supabase.auth.getSession().finally(() => setTimeout(() => setSessionChecked(true), 300));
+  }, []);
 
   const wineries = useQuery({
     queryKey: ["admin-wineries"],
@@ -54,27 +78,11 @@ function AdminPage() {
     onError: () => toast.error("Couldn't update the winery. Please try again."),
   });
 
+  if (!sessionChecked || (user && !profile)) return <div className="min-h-dvh bg-background" />;
+  if (!isAdmin) return <HiddenNotFound />;
+
   let body: React.ReactNode;
-  if (!user) {
-    body = (
-      <div className="mx-auto mt-24 max-w-sm rounded-lg bg-card p-6 text-center" style={cardShadow}>
-        <h1 className="text-lg font-semibold">Admins only</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in to open the admin area.</p>
-        <Button className="mt-4 h-11 w-full rounded-full" onClick={() => requireAuth(() => {})}>
-          Sign in
-        </Button>
-      </div>
-    );
-  } else if (!profile) {
-    body = <p className="mt-24 text-center text-sm text-muted-foreground">Loading…</p>;
-  } else if (!isAdmin) {
-    body = (
-      <div className="mx-auto mt-24 max-w-sm rounded-lg bg-card p-6 text-center" style={cardShadow}>
-        <h1 className="text-lg font-semibold">Admins only</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Your account doesn't have access to this area.</p>
-      </div>
-    );
-  } else {
+  {
     const list = wineries.data ?? [];
     body = (
       <div className="mx-auto w-full max-w-2xl px-4 pb-16">
