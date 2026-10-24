@@ -68,7 +68,7 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
       map = new mapboxgl.Map({
         container: container.current,
         style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg",
-        customAttribution: "© OpenStreetMap contributors",
+        attributionControl: false,
         center: latest.current.region
           ? [latest.current.region.center_lng, latest.current.region.center_lat]
           : [7.35, 48.2],
