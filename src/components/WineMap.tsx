@@ -74,7 +74,41 @@ export function openingMapPadding(width: number, carouselHeight = 180) {
   return { top: desktop ? 96 : 80, bottom: Math.max(220, carouselHeight + 40), left: desktop ? 64 : 32, right: desktop ? 96 : 64 };
 }
 
+export const immersiveRegionSettings = { pitch: 55, exaggeration: 1.3 };
+
+/** Missing region data can occur while a mounted map receives updated props. */
+export function regionMarkerFeatures(regions: Region[] | null | undefined) {
+  return (regions ?? []).map((r) => ({ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [r.center_lng, r.center_lat] }, properties: { id: r.id, name: r.name } }));
+}
+
+/** Sample curved edges, not only corners, to fit the entire Natural Earth outline. */
+export function worldPerimeter(): [number, number][] {
+  const points: [number, number][] = [];
+  for (let lat = -90; lat <= 90; lat += 10) points.push([-180, lat], [180, lat]);
+  for (let lng = -180; lng <= 180; lng += 10) points.push([lng, -90], [lng, 90]);
+  return points;
+}
+
+function fitWorld(map: MapboxMap) {
+  const padding = { top: 88, bottom: 96, left: 24, right: 24 };
+  map.fitBounds([[-180, -90], [180, 90]], { padding, duration: 0, bearing: 0, pitch: 0 });
+  let low = -4, high = 3;
+  const { clientWidth: width, clientHeight: height } = map.getContainer();
+  for (let i = 0; i < 18; i++) {
+    const zoom = (low + high) / 2;
+    map.jumpTo({ center: [0, 0], zoom, pitch: 0, bearing: 0, padding });
+    const fits = worldPerimeter().every((p) => {
+      const screen = map.project(p);
+      return screen.x >= padding.left && screen.x <= width - padding.right && screen.y >= padding.top && screen.y <= height - padding.bottom;
+    });
+    if (fits) low = zoom; else high = zoom;
+  }
+  map.jumpTo({ center: [0, 0], zoom: low, pitch: 0, bearing: 0, padding });
+}
+
 type Props = {
+  regions: Region[];
+  onRegionSelect: (id: string) => void;
   wineries: Winery[];
   /** Unrecommended wineries: hidden in the overview, fading in from zoom 10. */
   baseWineries: Winery[];
@@ -92,13 +126,16 @@ type Props = {
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ wineries, baseWineries, boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
+  const [fading, setFading] = useState(false);
+  const [cameraReady, setCameraReady] = useState<string | null>(null);
+  const transitionId = useRef(0);
   const token = (import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined) ?? PUBLIC_TOKEN;
-  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick });
-  latest.current = { wineries, region, onSelect, onLocate, picking, onPick };
+  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect });
+  latest.current = { wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect };
   const fittedRegion = useRef<string | null>(null);
   const previousCamera = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> } | null>(null);
   const activeDetail = useRef<string | null>(null);
@@ -113,6 +150,10 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
     const resize = () => {
       if (!map) return;
       map.resize();
+      if (!latest.current.region) {
+        if (map.getProjection().name === "naturalEarth") fitWorld(map);
+        return;
+      }
       if (detailRef.current || restoring.current) return;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding(openingMapPadding(map.getContainer().clientWidth, carousel?.height));
@@ -128,10 +169,11 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
         container: container.current,
         style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg",
         attributionControl: false,
-        center: latest.current.region
-          ? [latest.current.region.center_lng, latest.current.region.center_lat]
-          : [7.35, 48.2],
-        zoom: 8,
+        projection: "naturalEarth",
+        renderWorldCopies: false,
+        minZoom: -4,
+        center: [0, 0],
+        zoom: 0,
       });
       map.addControl(
         new mapboxgl.AttributionControl({
@@ -163,6 +205,8 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
         const white = styles.getPropertyValue("--map-cluster").trim() || "#ffffff";
         const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
         const empty = { type: "FeatureCollection" as const, features: [] };
+        m.addSource("mapbox-dem", { type: "raster-dem", url: "mapbox://mapbox.mapbox-terrain-dem-v1", tileSize: 512, maxzoom: 14 });
+        m.addSource("wine-regions", { type: "geojson", data: empty });
         m.addSource("boundaries", { type: "geojson", data: empty });
         m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", maxzoom: 13.5,
           // Disable the fill's implicit outline too, avoiding dark parcel seams.
@@ -236,6 +280,19 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
           id: "picked-pin", type: "circle", source: "picked",
           paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
         });
+        m.addLayer({ id: "region-marker", type: "circle", source: "wine-regions", paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white } });
+        m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-offset": [0, 1.5], "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2 } });
+        for (const layer of ["region-marker", "region-name", "boundary-fill"]) {
+          m.on("click", layer, (e) => {
+            if (latest.current.region) return;
+            const id = e.features?.[0]?.properties?.["id"];
+            if (typeof id === "string") latest.current.onRegionSelect?.(id);
+          });
+        }
+        for (const layer of ["region-marker", "region-name"]) {
+          m.on("mouseenter", layer, () => { m.getCanvas().style.cursor = "pointer"; });
+          m.on("mouseleave", layer, () => { m.getCanvas().style.cursor = ""; });
+        }
         void paper;
         m.on("click", "clusters", (e) => {
           const feature = m.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0] as unknown as { geometry: { type: string; coordinates: [number, number] }; properties?: { cluster_id?: number } } | undefined;
@@ -272,8 +329,16 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
       map?.remove();
       mapRef.current = null;
       fittedRegion.current = null;
+      transitionId.current++;
     };
   }, [token]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const source = map?.getSource("wine-regions") as GeoJSONSource | undefined;
+    if (!ready || !source) return;
+    source.setData({ type: "FeatureCollection", features: regionMarkerFeatures(regions) });
+  }, [regions, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -321,17 +386,77 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map || !region || fittedRegion.current === region.id) return;
+    const key = region?.id ?? "world";
+    if (!ready || !map || fittedRegion.current === key) return;
     const initial = fittedRegion.current === null;
-    fittedRegion.current = region.id;
-    const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
-    const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
-    map.fitBounds(bounds, { padding, maxZoom, duration: initial || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200 });
+    fittedRegion.current = key;
+    setCameraReady(null);
+    const id = ++transitionId.current;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+    const valid = () => transitionId.current === id && mapRef.current === map;
+    const settle = () => new Promise<void>((resolve) => {
+      const done = () => { window.clearTimeout(timeout); map.off("idle", done); resolve(); };
+      const timeout = window.setTimeout(done, 1800);
+      map.once("idle", done);
+    });
+    const controls = (enabled: boolean) => {
+      for (const control of [map.dragPan, map.scrollZoom, map.doubleClickZoom, map.boxZoom, map.keyboard]) {
+        if (enabled) control.enable(); else control.disable();
+      }
+      if (enabled) { map.dragRotate.enable(); map.touchZoomRotate.enable(); map.touchPitch.enable(); }
+      else { map.dragRotate.disable(); map.touchZoomRotate.disable(); map.touchPitch.disable(); }
+    };
+    void (async () => {
+      controls(false);
+      map.stop();
+      if (!region && !initial && !reduce) {
+        map.flyTo({ center: [0, 0], zoom: 0, pitch: 0, bearing: 0, padding: 0, duration: 900 });
+        await wait(900);
+      }
+      if (!valid()) return;
+      if (!initial || region) { setFading(true); await wait(reduce ? 0 : 150); }
+      if (!valid()) return;
+      const world = !region;
+      map.setTerrain(null);
+      map.setProjection(world ? "naturalEarth" : "globe");
+      const styles = getComputedStyle(document.documentElement);
+      if (world) {
+        map.setTerrain(null);
+        map.setFog(null);
+        fitWorld(map);
+      } else {
+        map.setTerrain({ source: "mapbox-dem", exaggeration: immersiveRegionSettings.exaggeration });
+        map.setFog({ color: styles.getPropertyValue("--map-fog").trim(), "high-color": styles.getPropertyValue("--map-atmosphere").trim(), "space-color": styles.getPropertyValue("--map-space").trim(), "horizon-blend": 0.15, "star-intensity": 0.12 });
+        map.jumpTo({ center: [region.center_lng, region.center_lat], zoom: 2, pitch: 0, bearing: 0 });
+      }
+      for (const layer of ["base-dot", "clusters", "cluster-count", "winery-shadow", "winery", "winery-number", "picked-pin"]) map.setLayoutProperty(layer, "visibility", world ? "none" : "visible");
+      for (const layer of ["region-marker", "region-name"]) map.setLayoutProperty(layer, "visibility", world ? "visible" : "none");
+      const regionalCamera = region ? (() => {
+        const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
+        const padding = openingMapPadding(map.getContainer().clientWidth, document.querySelector(".map-carousel")?.getBoundingClientRect().height);
+        const camera = map.cameraForBounds(bounds, { padding, maxZoom, pitch: immersiveRegionSettings.pitch, bearing: 0 });
+        return camera ? { ...camera, padding, pitch: immersiveRegionSettings.pitch, duration: reduce ? 0 : 1600 } : null;
+      })() : null;
+      if (regionalCamera) map.flyTo({ ...regionalCamera, preloadOnly: true });
+      await settle();
+      if (!valid()) return;
+      // Projection changes can reinstate the style's cached terrain configuration.
+      if (world) map.setTerrain(null);
+      setFading(false);
+      if (region && regionalCamera) {
+        map.flyTo(regionalCamera);
+        await wait(reduce ? 0 : 1600);
+      }
+      if (!valid()) return;
+      controls(!!region);
+      setCameraReady(key);
+    })();
   }, [region, wineries, baseWineries, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !map) return;
+    if (!ready || !map || !region || cameraReady !== region.id) return;
     const sel = selectedId ?? "";
     const isSel = ["==", ["get", "id"], sel];
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -360,11 +485,11 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
       duration: reduce ? 0 : 1200,
     });
     return () => cancelAnimationFrame(frame);
-   }, [selectedId, wineries, ready]);
+   }, [selectedId, wineries, ready, region, cameraReady]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return;
+    if (!map || !ready || !region || cameraReady !== region.id) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!detailId) {
       const camera = previousCamera.current;
@@ -396,13 +521,14 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
     const observer = new ResizeObserver(focus);
     observer.observe(map.getContainer());
     return () => observer.disconnect();
-  }, [detailId, wineries, baseWineries, ready]);
+  }, [detailId, wineries, baseWineries, ready, region, cameraReady]);
 
-  return <div ref={container} className="h-full w-full" onClick={(event) => {
+  return <div className="relative h-full w-full"><div ref={container} className="h-full w-full" onClick={(event) => {
     if (!(event.target instanceof HTMLCanvasElement)) return;
     const map = mapRef.current;
     const rect = container.current?.getBoundingClientRect();
     if (!map || !rect) return;
+    if (!latest.current.region) return;
     if (latest.current.picking) {
       const p = map.unproject([event.clientX - rect.left, event.clientY - rect.top]);
       latest.current.onPick?.([p.lng, p.lat]);
@@ -411,5 +537,5 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
     const layers = ["winery", "clusters", "base-dot"].filter((layer) => map.getLayer(layer));
     const hits = layers.length ? map.queryRenderedFeatures([event.clientX - rect.left, event.clientY - rect.top], { layers }) : [];
     if (!hits.length) latest.current.onSelect(null);
-  }} />;
+  }} /><div aria-hidden="true" className={`map-projection-veil absolute inset-0 bg-background ${fading ? "map-projection-veil-visible" : ""}`} /></div>;
 }
