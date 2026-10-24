@@ -438,6 +438,10 @@ export type Database = {
       }
       import_osm_wineries: { Args: { _elements: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      merge_unique_osm_duplicate: {
+        Args: { _a: string; _b: string }
+        Returns: string
+      }
       merge_winery_duplicate: {
         Args: { _keep: string; _remove: string }
         Returns: string
