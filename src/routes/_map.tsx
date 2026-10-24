@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, List, User as UserIcon, X } from "lucide-react";
+import { ArrowLeft, Globe2, ChevronDown, ChevronLeft, ChevronRight, List, User as UserIcon, X } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { WineryDetail } from "@/components/WineryDetail";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ function MapPage() {
     setSheetOpen(false);
     void navigate({ to: "/wineries/$id", params: { id }, resetScroll: false });
   };
-  const [regionId, setRegionId] = useState(regions[0]?.id ?? "");
+  const [regionId, setRegionId] = useState(() => allWineries.find((w) => w.id === detailId)?.region_id ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -62,7 +62,7 @@ function MapPage() {
   const [picked, setPicked] = useState<[number, number] | null>(null);
   const [mineOpen, setMineOpen] = useState(false);
   const recommended = useMemo(() => allWineries.filter(isRecommended), [allWineries]);
-  const baseWineries = useMemo(() => allWineries.filter((w) => !isRecommended(w)), [allWineries]);
+  const baseWineries = useMemo(() => allWineries.filter((w) => w.region_id === regionId && !isRecommended(w)), [allWineries, regionId]);
   const goTo = (id: string, region: string) => { setMe(null); setRegionId(region); setAdding(null); openDetail(id); };
   const settleTimer = useRef<number | undefined>(undefined);
 
@@ -75,6 +75,11 @@ function MapPage() {
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
   const region = regions.find((r) => r.id === regionId) ?? null;
+  const backToWorld = () => {
+    window.clearTimeout(settleTimer.current);
+    setRegionId(""); setSelectedId(null); setMe(null); setAdding(null); setSheetOpen(false);
+    if (detailId) closeDetail();
+  };
   const entries = useMemo(() => {
     if (me) {
       return recommended
@@ -130,9 +135,11 @@ function MapPage() {
 
   return (
     <LayoutGroup id="winery-map">
-    <main className="wine-map-page relative h-dvh w-full overflow-hidden">
+    <main data-map-mode={region ? "region" : "world"} className="wine-map-page relative h-dvh w-full overflow-hidden">
       <section aria-label="Winery map" className="absolute inset-0">
         <WineMap
+          regions={regions}
+          onRegionSelect={(id) => { setRegionId(id); setMe(null); setSelectedId(null); }}
           wineries={visibleWineries}
           baseWineries={baseWineries}
           boundaries={boundaries}
