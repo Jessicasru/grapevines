@@ -22,7 +22,7 @@ export const boundariesQuery = queryOptions({
   queryFn: async () => {
     const { data, error } = await supabase.rpc("region_boundaries");
     if (error) throw error;
-    return (data ?? []) as { id: string; geojson: GeoJSON.Geometry }[];
+    return (data ?? []) as unknown as { id: string; geojson: GeoJSON.Geometry }[];
   },
 });
 
