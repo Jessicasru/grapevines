@@ -29,6 +29,13 @@
       "when": 1792865380883,
       "tag": "0003_winery_enrichment_and_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792865816319,
+      "tag": "0004_region_boundaries",
+      "breakpoints": true
     }
   ]
 }

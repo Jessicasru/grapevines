@@ -88,6 +88,7 @@ export type Database = {
       }
       regions: {
         Row: {
+          boundary: unknown
           center_lat: number
           center_lng: number
           country: string
@@ -97,6 +98,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          boundary?: unknown
           center_lat: number
           center_lng: number
           country: string
@@ -106,6 +108,7 @@ export type Database = {
           name: string
         }
         Update: {
+          boundary?: unknown
           center_lat?: number
           center_lng?: number
           country?: string
@@ -263,6 +266,17 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      region_boundaries: {
+        Args: never
+        Returns: {
+          geojson: Json
+          id: string
+        }[]
+      }
+      set_region_boundary: {
+        Args: { _geojson: Json; _region_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
