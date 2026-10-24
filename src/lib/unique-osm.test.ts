@@ -9,7 +9,7 @@ const dt = { id: 'dt', name: 'Cave Emile Müller', sources: [{ source: 'datatour
 const pair = { winery_a: osm, winery_b: dt, distance_metres: 100 };
 async function matches(candidate: unknown, pairs: unknown[]) {
   if (!sql) throw new Error('Missing database connection');
-  const [r] = await sql`select public.duplicate_unique_osm(${sql.json(candidate as any)}::jsonb,${sql.json(pairs as any)}::jsonb) as match`;
+  const [r] = await sql`select public.duplicate_unique_osm(${JSON.stringify(candidate)}::jsonb,${JSON.stringify(pairs)}::jsonb) as match`;
   return r?.['match'];
 }
 describe.skipIf(!sql)('unique OSM match rules', () => {
