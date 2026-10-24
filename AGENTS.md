@@ -14,6 +14,7 @@
 - Data reads go through queryOptions in src/lib/wine.ts so loaders and components share one cache.
 - A persistent pathless _map layout owns the map and Framer Motion LayoutGroup; leaf winery routes provide metadata and identify the detail overlay so navigation preserves the camera and carousel. WineMap alone captures and restores camera state.
 - The map route uses one layout at every size: full-screen canvas, floating pill header, snapping bottom card carousel (.map-carousel, read by WineMap for padding) and a full-list bottom sheet; keep map resizing inside WineMap. Radius, shadow and accent come only from the shared tokens in styles.css.
+- WineMap owns the opening bounds and overlay-aware padding helpers; fit the union of recommendation and base records filtered to the selected region, and keep the base layer below recommendation layers.
 - Auth state lives in src/lib/auth.tsx (AuthProvider + requireAuth); gated actions call requireAuth instead of redirecting, because every screen is public.
 - "Recommended" is computed client-side by isRecommended in src/lib/wine.ts so carousel, pins and tests share one rule.
 - Avatars are stored as small resized data URLs on profiles, because public storage buckets are blocked in this workspace.

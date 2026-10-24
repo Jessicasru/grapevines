@@ -75,6 +75,7 @@
   --map-pin: #6e1f2a;
   --map-pin-foreground: #f7f1e6;
   --map-cluster: #ffffff;
+  --map-base-dot: #8f8a84;
 }
 
 @layer base {
