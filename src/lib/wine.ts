@@ -16,6 +16,16 @@ export const regionsQuery = queryOptions({
   },
 });
 
+/** Region outlines as GeoJSON geometries, for the subtle map overlay. */
+export const boundariesQuery = queryOptions({
+  queryKey: ["region-boundaries"],
+  queryFn: async () => {
+    const { data, error } = await supabase.rpc("region_boundaries");
+    if (error) throw error;
+    return (data ?? []) as { id: string; geojson: GeoJSON.Geometry }[];
+  },
+});
+
 export const wineriesQuery = queryOptions({
   queryKey: ["wineries"],
   queryFn: async () => {

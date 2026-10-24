@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, List, User as UserIcon, X } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
@@ -13,7 +13,7 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { distanceKm, isRecommended, regionsQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
+import { boundariesQuery, distanceKm, isRecommended, regionsQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
 import { Avatar, useAuth } from "@/lib/auth";
 import { AddWineryPanel, MyWineriesDrawer, SearchBox } from "@/components/MapExtras";
 
@@ -32,6 +32,7 @@ const SNAPS = [0.5, 1] as const;
 function MapPage() {
   const { data: regions } = useSuspenseQuery(regionsQuery);
   const { data: allWineries } = useSuspenseQuery(wineriesQuery);
+  const { data: boundaries } = useQuery(boundariesQuery);
   const navigate = useNavigate();
   const reduced = useReducedMotion();
   const detailId = useRouterState({ select: (state) => {
@@ -134,6 +135,7 @@ function MapPage() {
         <WineMap
           wineries={visibleWineries}
           baseWineries={baseWineries}
+          boundaries={boundaries}
           picking={!!adding}
           picked={picked}
           onPick={setPicked}

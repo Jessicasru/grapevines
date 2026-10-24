@@ -12,6 +12,8 @@ type Props = {
   wineries: Winery[];
   /** Unrecommended wineries: quiet grey dots from zoom 11, below the pins. */
   baseWineries: Winery[];
+  /** Region outlines, drawn as a faint fill below zoom 12. */
+  boundaries?: { id: string; geojson: GeoJSON.Geometry }[];
   /** When true, a map tap picks a location instead of selecting. */
   picking?: boolean;
   picked?: [number, number] | null;
@@ -24,7 +26,7 @@ type Props = {
 };
 
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ wineries, baseWineries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ wineries, baseWineries, boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -93,6 +95,11 @@ export function WineMap({ wineries, baseWineries, picking = false, picked = null
         const white = styles.getPropertyValue("--map-cluster").trim() || "#ffffff";
         const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
         const empty = { type: "FeatureCollection" as const, features: [] };
+        m.addSource("boundaries", { type: "geojson", data: empty });
+        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", maxzoom: 12,
+          paint: { "fill-color": burgundy, "fill-opacity": 0.05 } });
+        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", maxzoom: 12,
+          paint: { "line-color": burgundy, "line-width": 1, "line-opacity": 0.45 } });
         // Base layer first so every burgundy pin and cluster draws above it.
         m.addSource("base", { type: "geojson", data: empty });
         m.addLayer({
@@ -206,6 +213,15 @@ export function WineMap({ wineries, baseWineries, picking = false, picked = null
       })),
     });
   }, [wineries, ready]);
+
+  useEffect(() => {
+    const source = mapRef.current?.getSource("boundaries") as GeoJSONSource | undefined;
+    if (!ready || !source) return;
+    source.setData({
+      type: "FeatureCollection",
+      features: (boundaries ?? []).map((b) => ({ type: "Feature", geometry: b.geojson, properties: { id: b.id } })),
+    });
+  }, [boundaries, ready]);
 
   useEffect(() => {
     const source = mapRef.current?.getSource("base") as GeoJSONSource | undefined;
