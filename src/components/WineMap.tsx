@@ -416,6 +416,7 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
       map.setProjection(world ? "naturalEarth" : "globe");
       const styles = getComputedStyle(document.documentElement);
       if (world) {
+        map.setTerrain(null);
         map.setFog(null);
         fitWorld(map);
       } else {
@@ -427,6 +428,8 @@ export function WineMap({ regions, onRegionSelect, wineries, baseWineries, bound
       for (const layer of ["region-marker", "region-name"]) map.setLayoutProperty(layer, "visibility", world ? "visible" : "none");
       await settle();
       if (!valid()) return;
+      // Projection changes can reinstate the style's cached terrain configuration.
+      if (world) map.setTerrain(null);
       setFading(false);
       if (region) {
         const { bounds, maxZoom } = regionOpeningCamera(region, [...wineries, ...baseWineries]);
