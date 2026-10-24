@@ -1,20 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { immersiveRegionSettings, openingMapPadding, regionOpeningCamera, worldPerimeter } from "@/components/WineMap";
+import { immersiveRegionSettings, openingMapPadding, regionOpeningCamera, worldBounds, pitchAtZoom, worldOpeningZoom } from "@/components/WineMap";
+import { wineCountries } from "./wine-countries";
 import type { Region } from "./wine";
 
 const region = { id: "alsace", center_lng: 7.35, center_lat: 48.2 } as Region;
 
 describe("opening region view", () => {
-  it("uses a 55 degree regional pitch", () => {
-    expect(immersiveRegionSettings.pitch).toBe(55);
+  it("contains all longitudes on mobile rather than cropping Australia and Argentina", () => {
+    expect(512 * 2 ** worldOpeningZoom(390, 844)).toBeLessThanOrEqual(358.001);
+    expect(512 * 2 ** worldOpeningZoom(1894, 1482)).toBeLessThanOrEqual(1862.001);
+  });
+  it("uses a 50 degree regional pitch", () => {
+    expect(immersiveRegionSettings.pitch).toBe(50);
   });
   it("uses moderate 1.3 terrain exaggeration", () => {
     expect(immersiveRegionSettings.exaggeration).toBe(1.3);
   });
-  it("samples the whole world including poles and antimeridian", () => {
-    expect(worldPerimeter()).toContainEqual([-180, -90]);
-    expect(worldPerimeter()).toContainEqual([180, 90]);
-    expect(worldPerimeter()).toContainEqual([180, 0]);
+  it("limits world navigation to 60N and 50S across all longitudes", () => {
+    expect(worldBounds).toEqual([[-180, -50], [180, 60]]);
+  });
+  it("gradually pitches above zoom 8 and flattens below it", () => {
+    expect([7, 8, 8.5, 9, 14].map(pitchAtZoom)).toEqual([0, 0, 25, 50, 50]);
+  });
+  it("automatically derives wine country ISO and bounds from regions", () => {
+    const countries = wineCountries([{ ...region, country: "France" }, { ...region, id: "bordeaux", country: "France" }]);
+    expect(countries).toHaveLength(1);
+    expect(countries[0]?.iso).toBe("FR");
+    expect(countries[0]?.bounds).toEqual([[-5.14222, 41.3716], [9.56156, 51.0928]]);
   });
   it("fits grey and recommended records, excluding other regions", () => {
     expect(regionOpeningCamera(region, [

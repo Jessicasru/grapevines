@@ -1,3 +1,5 @@
+- [x] Restore centered header/profile color; remove Whole world choice and duplicate country labels; fit all wine countries without opening polygons.
+- [x] Replace map modes with Mercator hierarchy, country/region bounds selector and zoom-driven terrain; verify desktop/mobile and details.
 - [x] Add fitted world overview, clickable regions, faded globe/terrain entry, Back to world and resize handling; verify mobile, desktop and detail navigation.
 - [x] Simplify overview to soft fill and red markers; fade grey dots in, hide polygons at zoom 13.5, verify three levels on phone/desktop.
 - [x] Apply zoom-based grey-dot and wine-area emphasis; preserve opening bounds and verify overview, zoom 11 and zoom 14 on phone/desktop.

@@ -14,7 +14,7 @@
 - Data reads go through queryOptions in src/lib/wine.ts so loaders and components share one cache.
 - A persistent pathless _map layout owns the map and Framer Motion LayoutGroup; leaf winery routes provide metadata and identify the detail overlay so navigation preserves the camera and carousel. WineMap alone captures and restores camera state.
 - The map route uses one layout at every size: full-screen canvas, floating pill header, snapping bottom card carousel (.map-carousel, read by WineMap for padding) and a full-list bottom sheet; keep map resizing inside WineMap. Radius, shadow and accent come only from the shared tokens in styles.css.
-- WineMap owns world/region camera transitions, projection, terrain, screen-sampled world fitting and overlay-aware region bounds; route selection is null for world and a region ID for globe views so detail navigation preserves a single map instance.
+- WineMap owns a single Mercator map, zoom-driven country/region/winery layers, terrain and overlay-aware camera restoration; location selection requests camera movement without remounting the map. World contain-fit uses Mapbox's internal allowWorldUnderZoom flag because its default Mercator constraint crops continents on portrait screens; keep this compatibility point tested on SDK upgrades. Country reference data is bundled for deterministic ISO codes and bounds.
 - Auth state lives in src/lib/auth.tsx (AuthProvider + requireAuth); gated actions call requireAuth instead of redirecting, because every screen is public.
 - "Recommended" is computed client-side by isRecommended in src/lib/wine.ts so carousel, pins and tests share one rule.
 - Avatars are stored as small resized data URLs on profiles, because public storage buckets are blocked in this workspace.

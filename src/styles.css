@@ -152,6 +152,3 @@
   .wine-map-page .mapboxgl-ctrl-top-right { top: calc(max(16px, env(safe-area-inset-top)) + 60px); }
 }
 .map-carousel-safe { padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - 16px)); }
-.map-projection-veil { opacity: 0; pointer-events: none; transition: opacity 150ms ease; }
-.map-projection-veil-visible { opacity: 1; pointer-events: auto; }
-.wine-map-page[data-map-mode="world"] .mapboxgl-ctrl-top-right { display: none; }
