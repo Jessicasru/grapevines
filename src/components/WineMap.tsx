@@ -315,9 +315,10 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           m.on("mouseleave", layer, () => { m.getCanvas().style.cursor = ""; });
         }
         let pitchFrame = 0;
+        let automaticPitch = false;
         m.on("zoom", () => {
           latest.current.onZoomChange(m.getZoom());
-          if (detailRef.current || restoring.current) return;
+          if (automaticPitch || detailRef.current || restoring.current) return;
           cancelAnimationFrame(pitchFrame);
           pitchFrame = requestAnimationFrame(() => {
             if (cancelled || detailRef.current || restoring.current) return;
@@ -331,9 +332,13 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           });
         });
         m.on("zoomend", () => {
-          if (detailRef.current || restoring.current) return;
+          if (automaticPitch || detailRef.current || restoring.current) return;
           const pitch = pitchAtZoom(m.getZoom());
-          if (Math.abs(m.getPitch() - pitch) > 0.1) m.easeTo({ pitch, duration: 300 });
+          if (Math.abs(m.getPitch() - pitch) > 0.1) {
+            automaticPitch = true;
+            m.easeTo({ pitch, duration: 300 });
+            window.setTimeout(() => { automaticPitch = false; }, 350);
+          }
         });
         m.on("moveend", () => {
           const center = m.getCenter();
