@@ -177,6 +177,7 @@ export type Database = {
           name: string
           opening_days: string | null
           opening_hours: string | null
+          phone: string | null
           photo_url: string | null
           region_id: string
           review_status: string
@@ -205,6 +206,7 @@ export type Database = {
           name: string
           opening_days?: string | null
           opening_hours?: string | null
+          phone?: string | null
           photo_url?: string | null
           region_id: string
           review_status?: string
@@ -233,6 +235,7 @@ export type Database = {
           name?: string
           opening_days?: string | null
           opening_hours?: string | null
+          phone?: string | null
           photo_url?: string | null
           region_id?: string
           review_status?: string
@@ -265,6 +268,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      import_osm_wineries: { Args: { _elements: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       region_boundaries: {
         Args: never
