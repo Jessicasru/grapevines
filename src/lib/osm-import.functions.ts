@@ -55,7 +55,7 @@ async function loadElements(userAgent: string) {
       }
     }
     if (round < ROUND_WAITS.length) {
-      const wait = retryAfter ?? ROUND_WAITS[round];
+      const wait = retryAfter ?? ROUND_WAITS[round] ?? 0;
       await new Promise((r) => setTimeout(r, wait * 1000));
     }
   }
