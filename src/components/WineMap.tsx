@@ -76,7 +76,7 @@ export function openingMapPadding(width: number, carouselHeight = 180) {
 
 type Props = {
   wineries: Winery[];
-  /** Unrecommended wineries: zoom-scaled grey dots at every zoom, below the pins. */
+  /** Unrecommended wineries: hidden in the overview, fading in from zoom 10. */
   baseWineries: Winery[];
   /** Wine-area polygons lead in the overview and fade as the user zooms in. */
   boundaries?: { id: string; geojson: Geometry }[] | undefined;
@@ -164,19 +164,20 @@ export function WineMap({ wineries, baseWineries, boundaries, picking = false, p
         const font = ["Open Sans Bold", "Arial Unicode MS Bold"];
         const empty = { type: "FeatureCollection" as const, features: [] };
         m.addSource("boundaries", { type: "geojson", data: empty });
-        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries",
-          paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.35, 11, 0.2, 13, 0.08] } });
-        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries",
-          paint: { "line-color": burgundy, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 13, 1], "line-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.9, 13, 0.5] } });
+        m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", maxzoom: 13.5,
+          // Disable the fill's implicit outline too, avoiding dark parcel seams.
+          paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0.45, 10, 0.3, 12, 0.12, 13.5, 0] } });
+        m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", maxzoom: 13.5,
+          paint: { "line-color": burgundy, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 11, 1, 13, 0.5], "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0, 11, 0.4, 13, 0] } });
         // Base layer first so every burgundy pin and cluster draws above it.
         m.addSource("base", { type: "geojson", data: empty });
         m.addLayer({
-          id: "base-dot", type: "circle", source: "base",
+          id: "base-dot", type: "circle", source: "base", minzoom: 10,
           paint: {
             "circle-color": styles.getPropertyValue("--map-base-dot").trim(),
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 10, 3, 12, 5, 14, 7],
-            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.25, 10, 0.5, 12, 0.9, 13, 1],
-            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 10, 0, 12, 1.5],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 2, 12, 4, 14, 7],
+            "circle-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0, 11, 0.6, 12, 1],
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 0, 13, 1.5],
             "circle-stroke-color": white,
           },
         });
