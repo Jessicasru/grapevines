@@ -39,7 +39,14 @@ describe.skipIf(!sql || process.env['RUN_CSV_DATABASE_TESTS'] !== '1')("CSV data
     return result;
   }
   async function stored(tx: postgres.TransactionSql, sid: string) {
-    return await tx`select * from public.wineries where sources @> ${JSON.stringify([{ source: "datatourisme", source_id: sid }])}::jsonb`;
+    void tx;
+    const session = JSON.parse(process.env['LOVABLE_BROWSER_SUPABASE_SESSION_JSON'] ?? '{}');
+    const filter = encodeURIComponent(JSON.stringify([{ source: 'datatourisme', source_id: sid }]));
+    const response = await fetch(`${process.env['SUPABASE_URL']}/rest/v1/wineries?select=*&sources=cs.${filter}`, {
+      headers: { apikey: process.env['SUPABASE_PUBLISHABLE_KEY'] ?? process.env['SUPABASE_ANON_KEY'] ?? '', Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) throw new Error('Could not read imported verification winery');
+    return await response.json();
   }
   it("re-imports the same source identity without duplicates", async () => check(async (tx, row) => {
     expect(await importRows(tx, [row])).toEqual({ created: 1, updated: 0, skipped_outside: 0 });
