@@ -416,19 +416,32 @@ export type Database = {
         Returns: string
       }
       duplicate_filled_count: { Args: { _w: Json }; Returns: number }
+      duplicate_has_source: {
+        Args: { _source: string; _w: Json }
+        Returns: boolean
+      }
       duplicate_house_matches: {
         Args: { _a: string; _b: string }
         Returns: boolean
       }
+      duplicate_osm_only: { Args: { _w: Json }; Returns: boolean }
       duplicate_review_history: { Args: never; Returns: Json }
       duplicate_state: { Args: { _a: string; _b: string }; Returns: Json }
       duplicate_street: { Args: { _value: string }; Returns: string }
+      duplicate_unique_osm: {
+        Args: { _pair: Json; _pairs: Json }
+        Returns: boolean
+      }
       import_csv_wineries: {
         Args: { _rows: Json; _source: string }
         Returns: Json
       }
       import_osm_wineries: { Args: { _elements: Json }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      merge_unique_osm_duplicate: {
+        Args: { _a: string; _b: string }
+        Returns: string
+      }
       merge_winery_duplicate: {
         Args: { _keep: string; _remove: string }
         Returns: string

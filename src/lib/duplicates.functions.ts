@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Winery } from "@/lib/wine";
 
-export type DuplicatePair = { winery_a: Winery; winery_b: Winery; distance_metres: number; classification: 'same' | 'different' | 'manual'; address_a: { house: string; street: string }; address_b: { house: string; street: string } };
+export type DuplicatePair = { winery_a: Winery; winery_b: Winery; distance_metres: number; classification: 'same' | 'different' | 'unique_osm' | 'manual'; address_a: { house: string; street: string }; address_b: { house: string; street: string } };
 export type DuplicatePreview = { id: string; pairs: DuplicatePair[] };
 export type MergeEntry = { id: string; kept_id: string; removed_id: string; mode: string; created_at: string; wineries: Winery[] };
 export type DismissedEntry = { winery_a: Winery; winery_b: Winery; reason: string; created_at: string };

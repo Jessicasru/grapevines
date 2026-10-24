@@ -1,3 +1,4 @@
+- [x] Add mutually unique OSM–DATAtourisme preview rule, OSM coordinates with Undo, and manual source breakdown; verify.
 - [x] Add address preview/Apply, reversible merges, Merged/Dismissed history and keyboard duplicate review; verify.
 - [x] Add admin duplicate candidates, pair maps, manual merge and permanent dismissal; verify rules and flows.
 - [x] Add admin CSV imports with source matching, preserved details, boundary filtering, summaries and DATAtourisme credit; verify.
