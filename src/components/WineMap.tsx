@@ -220,8 +220,8 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         m.addSource("boundaries", { type: "geojson", data: empty });
         m.addSource("wine-countries", { type: "vector", url: "mapbox://mapbox.country-boundaries-v1" });
         const countryFilter = ["all", ["in", ["get", "iso_3166_1"], ["literal", wineCountries(latest.current.regions).map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
-        m.addLayer({ id: "country-fill", minzoom: 2, type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.3, 4, 0] } });
-        m.addLayer({ id: "country-line", minzoom: 2, type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 4, 0.15] } });
+        m.addLayer({ id: "country-fill", type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.3, 3, 0.3, 4, 0] } });
+        m.addLayer({ id: "country-line", type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.7, 3, 0.7, 4, 0.15] } });
         m.addSource("country-labels", { type: "geojson", data: empty });
         m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", minzoom: 3,
           paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.3, 8, 0.3, 9, 0.06] } });
