@@ -223,9 +223,6 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         m.addLayer({ id: "country-fill", type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.3, 3, 0.3, 4, 0] } });
         m.addLayer({ id: "country-line", type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.7, 3, 0.7, 4, 0.15] } });
         m.addSource("country-labels", { type: "geojson", data: empty });
-        m.addLayer({ id: "country-name", type: "symbol", source: "country-labels", maxzoom: 6,
-          layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 13, "text-letter-spacing": 0.15, "text-transform": "uppercase", "text-allow-overlap": true },
-          paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 1.5 } });
         m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", minzoom: 3,
           paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.3, 8, 0.3, 9, 0.06] } });
         m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", minzoom: 3,
@@ -411,17 +408,6 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
     const countries = wineCountries(regions);
     const filter = ["all", ["in", ["get", "iso_3166_1"], ["literal", countries.map((c) => c.iso)]], ["any", ["==", ["get", "worldview"], "all"], ["==", ["get", "worldview"], "US"]]];
     for (const layer of ["country-fill", "country-line"]) map?.setFilter(layer, filter as never);
-    // The basemap's own labels are switched off below zoom 6, so wine
-    // countries carry their own names in the overview.
-    const labels = map?.getSource("country-labels") as GeoJSONSource | undefined;
-    labels?.setData({
-      type: "FeatureCollection",
-      features: countries.flatMap((c) => {
-        if (!c.bounds) return [];
-        const [[west, south], [east, north]] = c.bounds;
-        return [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [(west + east) / 2, (south + north) / 2] }, properties: { name: c.name } }];
-      }),
-    });
   }, [regions, ready]);
 
   useEffect(() => {
