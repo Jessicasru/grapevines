@@ -299,6 +299,19 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
         });
         m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", minzoom: 3, maxzoom: 9, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 1, 8, 1, 9, 0] } });
+        // City and town labels crowd the country view; keep country/state names
+        // there and let settlements fade in once the user zooms past zoom 6.
+        for (const layer of m.getStyle().layers) {
+          if (layer.type !== "symbol") continue;
+          const sourceLayer = "sourceLayer" in layer ? layer.sourceLayer : undefined;
+          if (!sourceLayer || !/place|settlement/i.test(sourceLayer)) continue;
+          m.setPaintProperty(layer.id, "text-opacity", [
+            "case",
+            ["in", ["downcase", ["to-string", ["get", "class"]]], ["literal", ["country", "state", "sea", "ocean"]]],
+            1,
+            ["interpolate", ["linear"], ["zoom"], 6, 0, 7, 1],
+          ] as never);
+        }
         for (const layer of ["region-name", "boundary-fill"]) m.on("click", layer, (e) => {
           if (m.getZoom() >= 9) return;
           const id = e.features?.[0]?.properties?.["id"];
