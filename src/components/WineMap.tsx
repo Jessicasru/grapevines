@@ -223,6 +223,9 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         m.addLayer({ id: "country-fill", type: "fill", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "fill-color": burgundy, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.3, 3, 0.3, 4, 0] } });
         m.addLayer({ id: "country-line", type: "line", source: "wine-countries", "source-layer": "country_boundaries", filter: countryFilter as never, paint: { "line-color": burgundy, "line-width": 0.75, "line-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.7, 3, 0.7, 4, 0.15] } });
         m.addSource("country-labels", { type: "geojson", data: empty });
+        m.addLayer({ id: "country-name", type: "symbol", source: "country-labels", maxzoom: 6,
+          layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 13, "text-letter-spacing": 0.15, "text-transform": "uppercase", "text-allow-overlap": true },
+          paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 1.5 } });
         m.addLayer({ id: "boundary-fill", type: "fill", source: "boundaries", minzoom: 3,
           paint: { "fill-color": burgundy, "fill-antialias": false, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 0.3, 8, 0.3, 9, 0.06] } });
         m.addLayer({ id: "boundary-line", type: "line", source: "boundaries", minzoom: 3,
@@ -299,12 +302,18 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
         });
         m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", minzoom: 3, maxzoom: 9, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 1, 8, 1, 9, 0] } });
-        // The basemap is a Mapbox Standard import; city and town labels crowd
-        // the country view, so keep only country/state names there and let
-        // settlements fade in once the user zooms past zoom 6.
-        for (const layer of ["settlement-major-label", "settlement-minor-label", "settlement-subdivision-label"]) {
-          if (m.getLayer(layer)) m.setPaintProperty(layer, "text-opacity", ["interpolate", ["linear"], ["zoom"], 6, 0, 7, 1] as never);
-        }
+        // The basemap is a Mapbox Standard import; its city and town labels
+        // crowd the country view, so place labels switch off below zoom 6.
+        // Our own country-name layer covers the overview instead.
+        let placeLabelsShown: boolean | null = null;
+        const syncPlaceLabels = (zoom: number) => {
+          const show = zoom >= 6;
+          if (show === placeLabelsShown) return;
+          placeLabelsShown = show;
+          m.setConfigProperty("basemap", "showPlaceLabels", show);
+        };
+        m.on("zoom", () => syncPlaceLabels(m.getZoom()));
+        syncPlaceLabels(m.getZoom());
         for (const layer of ["region-name", "boundary-fill"]) m.on("click", layer, (e) => {
           if (m.getZoom() >= 9) return;
           const id = e.features?.[0]?.properties?.["id"];
