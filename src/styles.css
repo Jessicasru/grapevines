@@ -41,6 +41,9 @@
   --color-go-foreground: var(--go-foreground);
   --color-tag: var(--tag);
   --color-tag-foreground: var(--tag-foreground);
+  /* Same burgundy the recommended-winery pins use. */
+  --color-map-pin: var(--map-pin);
+  --color-map-pin-foreground: var(--map-pin-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

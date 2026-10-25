@@ -214,11 +214,11 @@ function ProfileDialog({ open, required, user, profile, onDone }: { open: boolea
   );
 }
 
-export function Avatar({ name, url, className = "" }: { name?: string | null | undefined; url?: string | null | undefined; className?: string }) {
+export function Avatar({ name, url, className = "", circleClass = "bg-tag text-tag-foreground" }: { name?: string | null | undefined; url?: string | null | undefined; className?: string; circleClass?: string }) {
   return url ? (
     <img src={url} alt="" referrerPolicy="no-referrer" className={`shrink-0 rounded-full object-cover ${className}`} />
   ) : (
-    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-tag font-semibold text-tag-foreground ${className}`}>
+    <span aria-hidden className={`grid shrink-0 place-items-center rounded-full font-semibold ${circleClass} ${className}`}>
       {(name?.trim()[0] ?? "?").toUpperCase()}
     </span>
   );
