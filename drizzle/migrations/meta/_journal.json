@@ -127,6 +127,13 @@
       "when": 1792873189856,
       "tag": "0017_spatial_first_duplicate_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792914727534,
+      "tag": "0018_rename_profiles_to_users",
+      "breakpoints": true
     }
   ]
 }
