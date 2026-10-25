@@ -1,3 +1,4 @@
+- [ ] Rename profiles to users and migrate app user IDs to sequential integers starting at 0, preserving sign-in, ownership and existing data; blocked on allowing backward-incompatible database migrations.
 - [x] Restore centered header/profile color; remove Whole world choice and duplicate country labels; fit all wine countries without opening polygons.
 - [x] Replace map modes with Mercator hierarchy, country/region bounds selector and zoom-driven terrain; verify desktop/mobile and details.
 - [x] Add fitted world overview, clickable regions, faded globe/terrain entry, Back to world and resize handling; verify mobile, desktop and detail navigation.
