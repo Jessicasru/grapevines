@@ -7,7 +7,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-export type Profile = Tables<"profiles">;
+export type Profile = Tables<"users">;
 
 type AuthCtx = {
   user: User | null;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: profileQueryKey(user?.id),
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
+      const { data, error } = await supabase.from("users").select("*").eq("auth_id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
