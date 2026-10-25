@@ -311,7 +311,6 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         };
         m.on("zoom", () => syncPlaceLabels(m.getZoom()));
         syncPlaceLabels(m.getZoom());
-        (window as unknown as { __map?: unknown }).__map = m; // debug
         for (const layer of ["region-name", "boundary-fill"]) m.on("click", layer, (e) => {
           if (m.getZoom() >= 9) return;
           const id = e.features?.[0]?.properties?.["id"];
