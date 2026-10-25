@@ -299,12 +299,12 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
           paint: { "circle-color": burgundy, "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": white },
         });
         m.addLayer({ id: "region-name", type: "symbol", source: "wine-regions", minzoom: 3, maxzoom: 9, layout: { "text-field": ["get", "name"], "text-font": font, "text-size": 14, "text-allow-overlap": true }, paint: { "text-color": burgundy, "text-halo-color": white, "text-halo-width": 2, "text-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0, 4, 1, 8, 1, 9, 0] } });
-        // The basemap is a Mapbox Standard import; its city and town labels
-        // crowd the country view, so place labels switch off below zoom 6.
-        // Our own country-name layer covers the overview instead.
+        // Standard's place-label switch includes country names, not just towns.
+        // Preserve native country labels in the world view; quiet places across
+        // the entire country fit range (capped at 6), then restore local labels.
         let placeLabelsShown: boolean | null = null;
         const syncPlaceLabels = (zoom: number) => {
-          const show = zoom >= 6;
+          const show = zoom < 3 || zoom >= 7;
           if (show === placeLabelsShown) return;
           placeLabelsShown = show;
           m.setConfigProperty("basemap", "showPlaceLabels", show);
