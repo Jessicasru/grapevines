@@ -15,7 +15,7 @@ describe.skipIf(!sql || process.env['RUN_CSV_DATABASE_TESTS'] !== '1')("CSV data
     try {
       await sql.begin(async (tx) => {
         await tx`set local search_path = public, extensions`;
-        const [admin] = await tx`select id from public.profiles where is_admin limit 1`;
+        const [admin] = await tx`select auth_id as id from public.users where is_admin limit 1`;
         if (!admin) throw new Error("Admin test account unavailable");
         await tx`select set_config('request.jwt.claim.sub', ${admin['id']}, true)`;
         const [point] = await tx`select ST_Y(ST_PointOnSurface(boundary)) as lat, ST_X(ST_PointOnSurface(boundary)) as lng from public.regions where name='Alsace'`;

@@ -7,7 +7,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-export type Profile = Tables<"profiles">;
+export type Profile = Tables<"users">;
 
 type AuthCtx = {
   user: User | null;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: profileQueryKey(user?.id),
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
+      const { data, error } = await supabase.from("users").select("*").eq("auth_id", user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -175,7 +175,7 @@ function ProfileDialog({ open, required, user, profile, onDone }: { open: boolea
     const trimmed = name.trim().slice(0, 60);
     if (!trimmed) return setError("Please choose a display name.");
     setBusy(true); setError(null);
-    const { error } = await supabase.from("profiles").upsert({ id: user.id, display_name: trimmed, avatar_url: photo });
+    const { error } = await supabase.from("users").upsert({ auth_id: user.id, display_name: trimmed, avatar_url: photo }, { onConflict: "auth_id" });
     setBusy(false);
     if (error) return setError("Couldn’t save your profile. Please try again.");
     await qc.invalidateQueries({ queryKey: profileQueryKey(user.id) });

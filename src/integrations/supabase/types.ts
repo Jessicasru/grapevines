@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          display_name: string | null
-          id: string
-          is_admin: boolean
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id: string
-          is_admin?: boolean
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          is_admin?: boolean
-        }
-        Relationships: []
-      }
       recommendations: {
         Row: {
           author_name: string
@@ -77,8 +53,8 @@ export type Database = {
             foreignKeyName: "recommendations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
           },
           {
             foreignKeyName: "recommendations_winery_id_fkey"
@@ -149,8 +125,8 @@ export type Database = {
             foreignKeyName: "saves_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
           },
           {
             foreignKeyName: "saves_winery_id_fkey"
@@ -160,6 +136,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      users: {
+        Row: {
+          auth_id: string
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: number
+          is_admin: boolean
+        }
+        Insert: {
+          auth_id: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_admin?: boolean
+        }
+        Update: {
+          auth_id?: string
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_admin?: boolean
+        }
+        Relationships: []
       }
       wineries: {
         Row: {
@@ -260,8 +263,8 @@ export type Database = {
             foreignKeyName: "wineries_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
           },
           {
             foreignKeyName: "wineries_merged_into_fkey"
@@ -306,8 +309,8 @@ export type Database = {
             foreignKeyName: "winery_duplicate_dismissals_dismissed_by_fkey"
             columns: ["dismissed_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
           },
           {
             foreignKeyName: "winery_duplicate_dismissals_winery_a_fkey"
