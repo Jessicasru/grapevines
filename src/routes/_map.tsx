@@ -173,8 +173,8 @@ function MapPage() {
         />
         <Button variant="secondary" size="icon" type="button" onClick={() => requireAuth(() => setMineOpen(true))}
           aria-label={user ? "My wineries" : "Sign in"}
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-secondary text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
-          {user ? <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-9 text-sm lg:size-11" /> : <UserIcon className="size-4 lg:size-5" />}
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-map-pin text-map-pin-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
+          {user ? <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-9 text-sm lg:size-11" circleClass="bg-map-pin text-map-pin-foreground" /> : <UserIcon className="size-4 lg:size-5" />}
         </Button>
       </header>
 
