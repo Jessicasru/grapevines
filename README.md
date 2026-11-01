@@ -2,7 +2,9 @@
 
 ## What this is
 
-Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from people who have been there. It is not a travel journal. Recommendations are public to everyone.
+Grapevines (working name) is a clean map of visitable wineries. On a general map, wineries get buried under restaurants, shops and hotels. This one is wine only.
+
+Two jobs: keep track of the wineries you have been to and the ones you want to visit, and find good wineries near you or along your route. The aim is that you choose from facts first (walk-ins, open now, organic or biodynamic, grape focus, tasting fee), then quiet signals (how many people have been there or saved it), then curated lists from Jessica and people she trusts. A public Go / Skip verdict is still there, but it is secondary.
 
 Live at mygrapevines.com. Current focus: Alsace only. Other regions come after Alsace is complete.
 
@@ -16,9 +18,10 @@ Live at mygrapevines.com. Current focus: Alsace only. Other regions come after A
 
 ## Product principles
 
+- Wine only. Visitable wineries, without restaurants, shops and hotels.
+- Facts, then quiet signals, then curated lists. A public Go / Skip verdict is secondary, and may later become private, optional or be removed.
 - No AI slop. No generated filler text, invented reviews, placeholder wineries or stock images. An honest empty state beats invented content.
 - Every winery has a source and a verification date.
-- Visitors give a Go / Skip verdict, not stars.
 - Agents gather data; the review queue decides what goes live. Nothing an agent finds is published without review.
 
 ## Data rules

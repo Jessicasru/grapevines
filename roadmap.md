@@ -1,4 +1,17 @@
-- [ ] Rename profiles to users and migrate app user IDs to sequential integers starting at 0, preserving sign-in, ownership and existing data; blocked on allowing backward-incompatible database migrations.
+## Next
+
+- [ ] One-tap 'been here' from the map card or detail, with an optional visit date, no review needed.
+- [ ] My map: a toggle that shows only my been-here and saved wineries, with distinct pins and a count per region.
+- [ ] Near me and along my route: closest visitable wineries by distance; route mode with start and end showing wineries within a set detour.
+- [ ] Factual winery fields: walk-ins (yes / appointment / unknown), opening hours, organic/biodynamic, tasting fee, each with a source and check date; admin can edit; unknown shows as unknown.
+- [ ] Filters: open now, walk-ins OK, organic; honest empty state.
+- [ ] Visited and saved counts on winery cards, hidden below a minimum count; sortable.
+- [ ] Curated lists (e.g. 'Jessica's Alsace day') that visitors can open on the map.
+- [ ] Decide what happens to Go / Skip (private, optional or removed) after the been-here and My map items are used.
+
+## Done
+
+- [x] Rename profiles to users and migrate app user IDs to sequential integers starting at 0, preserving sign-in, ownership and existing data.
 - [x] Restore centered header/profile color; remove Whole world choice and duplicate country labels; fit all wine countries without opening polygons.
 - [x] Replace map modes with Mercator hierarchy, country/region bounds selector and zoom-driven terrain; verify desktop/mobile and details.
 - [x] Add fitted world overview, clickable regions, faded globe/terrain entry, Back to world and resize handling; verify mobile, desktop and detail navigation.
@@ -15,6 +28,7 @@
 - [x] Remove separate Near me button, retain built-in location control, and verify interactions.
 - [x] Open shareable winery details over a persistent map with shared photo/name/tag transitions.
 - [x] Restore the exact camera on close; verify desktop, mobile, direct links, and reduced motion.
-- [x] Restore consistently burgundy, proportionate pins and verify zoomed-out cluster counts and expansion.- [x] Accounts (magic link + Google), profiles, search, add winery, saves, Been here recommendations, My wineries.
+- [x] Restore consistently burgundy, proportionate pins and verify zoomed-out cluster counts and expansion.
+- [x] Accounts (magic link + Google), profiles, search, add winery, saves, Been here recommendations, My wineries.
 
 - [x] Show wine-country shapes (France) in the world overview; region shapes keep zoom-in behaviour.
