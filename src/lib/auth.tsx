@@ -15,11 +15,12 @@ type AuthCtx = {
   /** Runs the action now if signed in, otherwise asks the user to sign in first. */
   requireAuth: (action: () => void) => void;
   openProfile: () => void;
+  profileOpen: boolean;
   signOut: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
-const signedOut: AuthCtx = { user: null, profile: null, requireAuth: () => {}, openProfile: () => {}, signOut: async () => {} };
+const signedOut: AuthCtx = { user: null, profile: null, requireAuth: () => {}, openProfile: () => {}, profileOpen: false, signOut: async () => {} };
 
 export function useAuth() {
   // Falls back to a signed-out state (e.g. mid hot-reload) instead of blanking the page.
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   return (
-    <Ctx.Provider value={{ user, profile, requireAuth, openProfile: () => setProfileOpen(true), signOut }}>
+    <Ctx.Provider value={{ user, profile, requireAuth, openProfile: () => setProfileOpen(true), profileOpen, signOut }}>
       {children}
       <SignInDialog open={signInOpen} onOpenChange={(o) => { setSignInOpen(o); if (!o) pending.current = null; }} />
       {user && (

@@ -106,7 +106,9 @@
 /* Map-first layout: floating pill header, snapping card carousel. */
 .map-header-pill { top: max(16px, env(safe-area-inset-top)); }
 /* Track pads 8px so card rings/shadows aren't clipped; card bottom lands 16px (or safe area) from the edge. */
-.map-carousel { padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) - 8px); }
+:root { --nav-gap: max(20px, env(safe-area-inset-bottom)); --nav-h: 60px; --nav-clear: calc(var(--nav-gap) + var(--nav-h) + 12px); }
+.bottom-nav { bottom: var(--nav-gap); height: var(--nav-h); background: #fbf5ea; border: 1px solid #e6d8c3; --nav-active: #6b2a35; --nav-cream: #fbf5ea; }
+.map-carousel { padding-bottom: calc(var(--nav-clear) - 8px); }
 .map-carousel-track { padding-block: 8px; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); scroll-padding-inline: 16px; }
 .wine-map-page .mapboxgl-ctrl-top-right { top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }
 .wine-map-page .mapboxgl-ctrl-top-right .mapboxgl-ctrl { margin: 0 0 8px; }
@@ -123,8 +125,8 @@
 .winery-detail {
   left: max(16px, env(safe-area-inset-left));
   right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
-  height: calc(85dvh - max(16px, env(safe-area-inset-bottom)));
+  bottom: var(--nav-clear);
+  height: calc(85dvh - var(--nav-clear));
 }
 .detail-drag-handle { touch-action: none; cursor: grab; }
 @media (min-width: 1024px) {
@@ -154,4 +156,7 @@
 @media (max-width: 1023px) {
   .wine-map-page .mapboxgl-ctrl-top-right { top: calc(max(16px, env(safe-area-inset-top)) + 60px); }
 }
-.map-carousel-safe { padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - 16px)); }
+.map-carousel-safe { padding-bottom: calc(var(--nav-clear) - 16px); }
+@media (max-width: 1023px) {
+  .wine-map-page .mapboxgl-ctrl-bottom-left, .wine-map-page .mapboxgl-ctrl-bottom-right { bottom: calc(var(--nav-clear) - 4px); }
+}

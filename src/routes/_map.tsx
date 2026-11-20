@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, List, User as UserIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, List, X } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { WineryDetail } from "@/components/WineryDetail";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,9 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { boundariesQuery, distanceKm, isRecommended, regionsQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
-import { Avatar, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { AddWineryPanel, MyWineriesDrawer, SearchBox } from "@/components/MapExtras";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/_map")({
   loader: ({ context }) =>
@@ -61,7 +62,7 @@ function MapPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
   const trackRef = useRef<HTMLOListElement>(null);
-  const { user, profile, requireAuth } = useAuth();
+  const { requireAuth } = useAuth();
   const [adding, setAdding] = useState<{ name: string } | null>(null);
   const [picked, setPicked] = useState<[number, number] | null>(null);
   const [mineOpen, setMineOpen] = useState(false);
@@ -171,11 +172,6 @@ function MapPage() {
           onPick={(w) => goTo(w.id, w.region_id)}
           onAdd={(name) => requireAuth(() => { if (detailId) closeDetail(); setPicked(null); setAdding({ name }); })}
         />
-        <Button variant="secondary" size="icon" type="button" onClick={() => requireAuth(() => setMineOpen(true))}
-          aria-label={user ? "My wineries" : "Sign in"}
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-map-pin text-map-pin-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring lg:size-11">
-          {user ? <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-9 text-sm lg:size-11" circleClass="bg-map-pin text-map-pin-foreground" /> : <UserIcon className="size-4 lg:size-5" />}
-        </Button>
       </header>
 
       {adding && (
@@ -289,6 +285,7 @@ function MapPage() {
           </ol>
         </DrawerContent>
       </Drawer>
+      <BottomNav savedOpen={mineOpen} onExplore={() => setMineOpen(false)} onSaved={() => requireAuth(() => setMineOpen(true))} />
       <Outlet />
       <Suspense fallback={null}>
         <AnimatePresence key={overlayId ?? "closed"}>
