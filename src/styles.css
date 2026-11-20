@@ -107,19 +107,7 @@
 .map-header-pill { top: max(16px, env(safe-area-inset-top)); }
 /* Track pads 8px so card rings/shadows aren't clipped; card bottom lands 16px (or safe area) from the edge. */
 :root { --nav-gap: max(20px, env(safe-area-inset-bottom)); --nav-h: 60px; --nav-clear: calc(var(--nav-gap) + var(--nav-h) + 12px); }
-.bottom-nav { bottom: var(--nav-gap); height: var(--nav-h); --nav-active: #6b2a35; --nav-cream: #fbf5ea; --nav-ink: #3b2a22; }
-/* Liquid glass, with solid cream where backdrop-filter is unsupported. */
-.liquid-glass {
-  background: #fbf5ea;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 8px 12px -10px rgba(255, 255, 255, 0.8), 0 8px 24px rgba(60, 40, 30, 0.18);
-}
-@supports (backdrop-filter: blur(1px)) {
-  .liquid-glass { background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(14px) saturate(180%); }
-}
-.liquid-glass-capsule { background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 6px rgba(60, 40, 30, 0.12); }
-@supports not (backdrop-filter: blur(1px)) { .liquid-glass-capsule { background: #f1e6d4; } }
-.bottom-nav button { text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7); }
+.bottom-nav { bottom: var(--nav-gap); height: var(--nav-h); background: #fbf5ea; border: 1px solid #e6d8c3; --nav-active: #6b2a35; --nav-cream: #fbf5ea; }
 .map-carousel { padding-bottom: calc(var(--nav-clear) - 8px); }
 .map-carousel-track { padding-block: 8px; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); scroll-padding-inline: 16px; }
 .wine-map-page .mapboxgl-ctrl-top-right { top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }
