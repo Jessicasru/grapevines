@@ -21,7 +21,7 @@ export function SearchBox({ wineries, onPick, onAdd }: { wineries: Winery[]; onP
         type="search" value={q} placeholder="Search wineries" aria-label="Search wineries"
         onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         onKeyDown={(e) => { if (e.key === "Escape") { setQ(""); setOpen(false); } if (e.key === "Enter" && results[0]) { onPick(results[0]); setQ(""); setOpen(false); } }}
-        className="h-9 w-full min-w-0 rounded-full bg-secondary pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-10 lg:text-base"
+        className="h-9 w-full min-w-0 liquid-glass rounded-full pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-10 lg:text-base"
       />
       {show && (
         <div className="map-glass absolute left-0 right-0 top-full z-20 mt-3 min-w-[16rem] overflow-hidden rounded-lg shadow">
