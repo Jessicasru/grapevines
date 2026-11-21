@@ -2,7 +2,7 @@
 
 ## What this is
 
-Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from people who have been there. It is not a travel journal. Recommendations are public to everyone.
+Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from the wine community. It is not a travel journal. Recommendations are public to everyone.
 
 Live at mygrapevines.com. Current focus: Alsace only. Other regions come after Alsace is complete.
 
