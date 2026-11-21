@@ -15,10 +15,10 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { boundariesQuery, distanceKm, isRecommended, regionsQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
+import { boundariesQuery, distanceKm, isRecommended, regionsQuery, savesQuery, villageOf, wineriesQuery, type Winery } from "@/lib/wine";
 import { useAuth } from "@/lib/auth";
-import { AddWineryPanel, MyWineriesDrawer, SearchBox } from "@/components/MapExtras";
-import { BottomNav } from "@/components/BottomNav";
+import { AddWineryPanel, SavedSheet, SearchBox, YouSheet } from "@/components/MapExtras";
+import { BottomNav, type NavTab } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/_map")({
   loader: ({ context }) =>
@@ -31,6 +31,7 @@ export const Route = createFileRoute("/_map")({
 
 const village = (w: Winery) => villageOf(w);
 const SNAPS = [0.5, 1] as const;
+const noWineries: Winery[] = [];
 
 function MapPage() {
   const { data: regions } = useSuspenseQuery(regionsQuery);
@@ -62,10 +63,27 @@ function MapPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
   const trackRef = useRef<HTMLOListElement>(null);
-  const { requireAuth } = useAuth();
+  const { user, requireAuth } = useAuth();
   const [adding, setAdding] = useState<{ name: string } | null>(null);
   const [picked, setPicked] = useState<[number, number] | null>(null);
-  const [mineOpen, setMineOpen] = useState(false);
+  const [tab, setTab] = useState<NavTab>("explore");
+  // Saved and You belong to a signed-in visitor; signing out returns to the map.
+  const activeTab: NavTab = user ? tab : "explore";
+  const saves = useQuery({ ...savesQuery(user?.id ?? ""), enabled: !!user && activeTab === "saved" });
+  const savedWineries = useMemo(() => {
+    const ids = new Set((saves.data ?? []).map((s) => s.winery_id));
+    return allWineries.filter((w) => ids.has(w.id));
+  }, [saves.data, allWineries]);
+  const savedOnly = activeTab === "saved";
+  const selectTab = (next: NavTab) => {
+    const show = () => {
+      window.clearTimeout(settleTimer.current);
+      setSheetOpen(false); setAdding(null); setPicked(null); setSelectedId(null);
+      if (detailId) closeDetail();
+      setTab(next);
+    };
+    if (next === "explore") show(); else requireAuth(show);
+  };
   const recommended = useMemo(() => allWineries.filter(isRecommended), [allWineries]);
   const baseWineries = useMemo(() => allWineries.filter((w) => !isRecommended(w)), [allWineries, regionId]);
   const goTo = (id: string, region: string) => { setMe(null); setRegionId(region); setLocation({ kind: "region", id: region }); setAdding(null); openDetail(id); };
@@ -140,9 +158,11 @@ function MapPage() {
     setSelectedId(id);
   };
 
+  const hideCarousel = zoom < 9 || !!detailId || !!adding || activeTab !== "explore";
+
   return (
     <LayoutGroup id="winery-map">
-    <main className="wine-map-page relative h-dvh w-full overflow-hidden">
+    <main data-sheet={activeTab === "explore" || detailId ? undefined : activeTab} className="wine-map-page relative h-dvh w-full overflow-hidden">
       <section aria-label="Winery map" className="absolute inset-0">
         <WineMap
           location={location}
@@ -150,8 +170,9 @@ function MapPage() {
           onZoomChange={setZoom}
           regions={regions}
           onRegionSelect={(id) => selectLocation({ kind: "region", id })}
-          wineries={visibleWineries}
-          baseWineries={baseWineries}
+          wineries={savedOnly ? savedWineries : visibleWineries}
+          baseWineries={savedOnly ? noWineries : baseWineries}
+          savedOnly={savedOnly}
           boundaries={boundaries}
           picking={!!adding}
           picked={picked}
@@ -164,13 +185,13 @@ function MapPage() {
         />
       </section>
 
-      <header className="map-glass map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 rounded-full p-1.5 shadow lg:left-1/2 lg:right-auto lg:w-[40rem] lg:-translate-x-1/2 lg:gap-2 lg:p-2">
+      <header className="map-bar map-header-pill absolute inset-x-4 z-20 flex items-center gap-1.5 p-1.5 lg:left-1/2 lg:right-auto lg:w-[40rem] lg:-translate-x-1/2 lg:gap-2">
         <h1 className="sr-only">Grapevines</h1>
         <RegionSelector regions={regions} location={location} onSelect={selectLocation} />
         <SearchBox
           wineries={allWineries}
-          onPick={(w) => goTo(w.id, w.region_id)}
-          onAdd={(name) => requireAuth(() => { if (detailId) closeDetail(); setPicked(null); setAdding({ name }); })}
+          onPick={(w) => { setTab("explore"); goTo(w.id, w.region_id); }}
+          onAdd={(name) => requireAuth(() => { if (detailId) closeDetail(); setTab("explore"); setPicked(null); setAdding({ name }); })}
         />
       </header>
 
@@ -181,9 +202,10 @@ function MapPage() {
             onCreated={(id) => { setAdding(null); setPicked(null); openDetail(id); }} />
         </div>
       )}
-      <MyWineriesDrawer open={mineOpen} onOpenChange={setMineOpen} onPick={(id, region) => { setMineOpen(false); goTo(id, region); }} />
+      {activeTab === "saved" && !detailId && <SavedSheet saves={saves.data ?? []} loading={saves.isLoading} onPick={openDetail} />}
+      {activeTab === "you" && !detailId && <YouSheet onSignedOut={() => setTab("explore")} />}
 
-      <motion.div animate={{ opacity: zoom < 9 || detailId || adding ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={zoom < 9 || detailId || adding ? true : undefined} aria-hidden={zoom < 9 || detailId || adding ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
+      <motion.div animate={{ opacity: hideCarousel ? 0 : 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }} inert={hideCarousel ? true : undefined} aria-hidden={hideCarousel ? true : undefined} className="map-carousel pointer-events-none absolute inset-x-0 bottom-0 z-10">
         <div className="pointer-events-auto mb-2 flex justify-center gap-2 px-4">
           <Button variant="ghost"
             type="button"
@@ -260,12 +282,12 @@ function MapPage() {
         activeSnapPoint={snap}
         setActiveSnapPoint={setSnap}
       >
-        <DrawerContent className="mx-auto h-[96dvh] max-w-xl rounded-t-lg border-0 bg-card shadow">
+        <DrawerContent overlayClassName="z-30" className="z-30 mx-auto h-[96dvh] max-w-xl rounded-t-lg border-0 bg-card shadow">
           <div className="px-5 pb-2 pt-3">
             <DrawerTitle className="text-lg">{me ? "Closest to you" : `${entries.length} wineries in ${region?.name ?? ""}`}</DrawerTitle>
             <DrawerDescription>Tap one to see it on the map.</DrawerDescription>
           </div>
-          <ol className={`divide-y overflow-y-auto overscroll-contain px-5 pb-8 ${snap === 1 ? "" : "max-h-[calc(50dvh-6rem)]"}`}>
+          <ol className={`divide-y overflow-y-auto overscroll-contain px-5 pb-[var(--nav-clear)] ${snap === 1 ? "" : "max-h-[calc(50dvh-6rem)]"}`}>
             {entries.map(({ w, km }, i) => (
               <li key={w.id}>
                 <Button variant="ghost"
@@ -285,7 +307,7 @@ function MapPage() {
           </ol>
         </DrawerContent>
       </Drawer>
-      <BottomNav savedOpen={mineOpen} onExplore={() => setMineOpen(false)} onSaved={() => requireAuth(() => setMineOpen(true))} />
+      <BottomNav active={activeTab} onSelect={selectTab} />
       <Outlet />
       <Suspense fallback={null}>
         <AnimatePresence key={overlayId ?? "closed"}>

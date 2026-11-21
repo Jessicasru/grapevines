@@ -80,20 +80,20 @@ export const wineryQuery = (id: string) =>
     },
   });
 
+async function fetchSaves(userId: string) {
+  const { data, error } = await supabase
+    .from("saves")
+    .select("*, wineries!inner(id, name, address, village, photo_url, region_id)")
+    .is("wineries.merged_into", null)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+export type Save = Awaited<ReturnType<typeof fetchSaves>>[number];
+
 export const savesQuery = (userId: string) =>
-  queryOptions({
-    queryKey: ["saves", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("saves")
-        .select("*, wineries!inner(id, name, address, village, photo_url, region_id)")
-        .is("wineries.merged_into", null)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  queryOptions({ queryKey: ["saves", userId], queryFn: () => fetchSaves(userId) });
 
 /** Great-circle distance in kilometres. */
 export function distanceKm(a: [number, number], b: [number, number]) {

@@ -52,6 +52,8 @@
 :root {
   --radius: 1rem;
   --shadow-soft: 0 4px 16px rgba(60, 40, 30, 0.12);
+  /* The floating search and nav bars share one lift off the map. */
+  --shadow-bar: 0 6px 20px rgba(60, 40, 30, 0.16), 0 1px 3px rgba(60, 40, 30, 0.1);
   --background: oklch(0.975 0.012 80);
   --foreground: oklch(0.24 0.03 30);
   --card: #FFFDF9;
@@ -107,7 +109,15 @@
 .map-header-pill { top: max(16px, env(safe-area-inset-top)); }
 /* Track pads 8px so card rings/shadows aren't clipped; card bottom lands 16px (or safe area) from the edge. */
 :root { --nav-gap: max(20px, env(safe-area-inset-bottom)); --nav-h: 60px; --nav-clear: calc(var(--nav-gap) + var(--nav-h) + 12px); }
-.bottom-nav { bottom: var(--nav-gap); height: var(--nav-h); background: #fbf5ea; border: 1px solid #e6d8c3; --nav-active: #6b2a35; --nav-cream: #fbf5ea; }
+/* One family: the search bar on top and the nav bar below share cream, height, radius and shadow. */
+.map-bar { height: var(--nav-h); background: #fbf5ea; border: 1px solid #e6d8c3; border-radius: 9999px; box-shadow: var(--shadow-bar); --nav-active: #6b2a35; --nav-idle: #7d6a5f; --nav-cream: #fbf5ea; }
+.bottom-nav { bottom: var(--nav-gap); }
+.nav-capsule { background: color-mix(in srgb, var(--nav-active) 13%, transparent); }
+/* Saved and You sheets sit under the nav bar and leave the map undimmed. */
+.wine-map-page[data-sheet="saved"] { --sheet-h: max(46dvh, calc(var(--nav-clear) + 200px)); }
+.wine-map-page[data-sheet="you"] { --sheet-h: calc(var(--nav-clear) + 168px); }
+.nav-sheet { height: var(--sheet-h); padding-bottom: var(--nav-clear); }
+.wine-map-page[data-sheet] .mapboxgl-ctrl-bottom-left, .wine-map-page[data-sheet] .mapboxgl-ctrl-bottom-right { bottom: calc(var(--sheet-h) + 8px) !important; }
 .map-carousel { padding-bottom: calc(var(--nav-clear) - 8px); }
 .map-carousel-track { padding-block: 8px; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); scroll-padding-inline: 16px; }
 .wine-map-page .mapboxgl-ctrl-top-right { top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }

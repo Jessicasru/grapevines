@@ -129,19 +129,27 @@ type Props = {
   detailId: string | null;
   onSelect: (id: string | null) => void;
   onLocate: (coords: [number, number]) => void;
+  /** Saved tab: `wineries` are the visitor's saves, shown unnumbered at every zoom and framed above the sheet. */
+  savedOnly?: boolean;
 };
 
+const PIN_LAYERS = ["clusters", "cluster-count", "winery-shadow", "winery", "winery-number"];
+const zoomFade = (to: number) => ["interpolate", ["linear"], ["zoom"], 8, 0, 9, to];
+type Camera = { center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> };
+
 /** All Mapbox logic stays here, loaded only after hydration. */
-export function WineMap({ location, onLocationSelect, onZoomChange, regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate }: Props) {
+export function WineMap({ location, onLocationSelect, onZoomChange, regions = [], onRegionSelect, wineries = [], baseWineries = [], boundaries, picking = false, picked = null, onPick, region, selectedId, detailId, onSelect, onLocate, savedOnly = false }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
   const [cameraReady, setCameraReady] = useState<string | null>(null);
   const token = (import.meta.env["VITE_MAPBOX_TOKEN"] as string | undefined) ?? PUBLIC_TOKEN;
-  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location });
-  latest.current = { wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location };
+  const latest = useRef({ wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location, savedOnly });
+  latest.current = { wineries, region, onSelect, onLocate, picking, onPick, onRegionSelect, onLocationSelect, onZoomChange, regions, location, savedOnly };
   const fittedRegion = useRef<string | null>(null);
-  const previousCamera = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number; padding: ReturnType<MapboxMap["getPadding"]> } | null>(null);
+  const previousCamera = useRef<Camera | null>(null);
+  const exploreCamera = useRef<Camera | null>(null);
+  const savedFitted = useRef(false);
   const activeDetail = useRef<string | null>(null);
   const restoring = useRef(false);
   const detailRef = useRef(detailId);
@@ -158,7 +166,7 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
       const atWorld = map.getZoom() <= oldMin + 0.05;
       map.setMinZoom(worldZoom(map));
       if (atWorld) { fitWorld(map); return; }
-      if (detailRef.current || restoring.current) return;
+      if (detailRef.current || restoring.current || latest.current.savedOnly) return;
       const carousel = document.querySelector(".map-carousel")?.getBoundingClientRect();
       map.setPadding(openingMapPadding(map.getContainer().clientWidth, carousel?.height));
     };
@@ -312,12 +320,12 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
         m.on("zoom", () => syncPlaceLabels(m.getZoom()));
         syncPlaceLabels(m.getZoom());
         for (const layer of ["region-name", "boundary-fill"]) m.on("click", layer, (e) => {
-          if (m.getZoom() >= 9) return;
+          if (m.getZoom() >= 9 || latest.current.savedOnly) return;
           const id = e.features?.[0]?.properties?.["id"];
           if (typeof id === "string") latest.current.onLocationSelect({ kind: "region", id });
         });
         for (const layer of ["country-fill"]) m.on("click", layer, (e) => {
-          if (m.getZoom() >= 4) return;
+          if (m.getZoom() >= 4 || latest.current.savedOnly) return;
           const properties = e.features?.[0]?.properties;
           const country = wineCountries(latest.current.regions).find((c) => c.iso === properties?.["iso_3166_1"] || c.name === properties?.["name"]);
           if (country) latest.current.onLocationSelect({ kind: "country", name: country.name });
@@ -418,10 +426,10 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
       features: wineries.map((w, i) => ({
         type: "Feature",
         geometry: { type: "Point", coordinates: [w.longitude, w.latitude] },
-        properties: { id: w.id, n: String(i + 1) },
+        properties: { id: w.id, n: savedOnly ? "" : String(i + 1) },
       })),
     });
-  }, [wineries, ready]);
+  }, [wineries, savedOnly, ready]);
 
   useEffect(() => {
     const source = mapRef.current?.getSource("boundaries") as GeoJSONSource | undefined;
@@ -480,9 +488,6 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
       // Selected pins grow; every recommendation stays fully visible.
       map.setPaintProperty("winery", "circle-radius", ["case", isSel, 12 + 4 * t, 12] as never);
       map.setPaintProperty("winery-shadow", "circle-radius", ["case", isSel, 17 + 4 * t, 17] as never);
-      for (const [layer, prop] of [["winery", "circle-opacity"], ["winery", "circle-stroke-opacity"], ["winery-number", "text-opacity"]] as const)
-        map.setPaintProperty(layer, prop, ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 1]);
-      map.setPaintProperty("winery-shadow", "circle-opacity", ["interpolate", ["linear"], ["zoom"], 8, 0, 9, 0.18]);
       map.setLayoutProperty("winery-number", "text-size", ["case", isSel, 12 + 2 * t, 12] as never);
     };
     let frame = 0;
@@ -502,6 +507,45 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
     });
     return () => cancelAnimationFrame(frame);
    }, [selectedId, wineries, ready, region, cameraReady]);
+
+  // Saved pins show at every zoom; explore pins fade in once a region is in view.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const layer of PIN_LAYERS) map.setLayerZoomRange(layer, savedOnly ? 0 : 8, 24);
+    const fade = (to: number) => (savedOnly ? to : zoomFade(to)) as never;
+    for (const [layer, prop] of [["clusters", "circle-opacity"], ["clusters", "circle-stroke-opacity"], ["cluster-count", "text-opacity"], ["winery", "circle-opacity"], ["winery", "circle-stroke-opacity"], ["winery-number", "text-opacity"]] as const)
+      map.setPaintProperty(layer, prop, fade(1));
+    map.setPaintProperty("winery-shadow", "circle-opacity", fade(0.18));
+  }, [savedOnly, ready]);
+
+  // Entering Saved frames the saved pins above the sheet; leaving returns to the explore camera.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !cameraReady) return;
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 800;
+    if (!savedOnly) {
+      const camera = exploreCamera.current;
+      exploreCamera.current = null;
+      savedFitted.current = false;
+      if (!camera) return;
+      map.stop();
+      previousCamera.current = null;
+      map.flyTo({ ...camera, duration });
+      return;
+    }
+    if (!exploreCamera.current) {
+      const center = map.getCenter();
+      exploreCamera.current = previousCamera.current ?? { center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch(), padding: map.getPadding() };
+    }
+    if (savedFitted.current || !wineries.length) return;
+    savedFitted.current = true;
+    const lngs = wineries.map((w) => w.longitude);
+    const lats = wineries.map((w) => w.latitude);
+    const sheet = document.querySelector(".nav-sheet")?.getBoundingClientRect().height ?? map.getContainer().clientHeight * 0.46;
+    map.stop();
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: { top: 120, bottom: sheet + 40, left: 48, right: 48 }, maxZoom: 12, duration, bearing: 0, pitch: 0 });
+  }, [savedOnly, wineries, ready, cameraReady]);
 
   useEffect(() => {
     const map = mapRef.current;
