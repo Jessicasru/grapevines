@@ -11,7 +11,7 @@ export function RegionSelector({ regions, location, onSelect }: { regions: Regio
   const label = location.kind === "country" ? location.name : location.kind === "region" ? regions.find((r) => r.id === location.id)?.name ?? "Wine regions" : "Wine regions";
   const select = (value: MapLocation) => { onSelect(value); setOpen(false); };
   return <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild>
-    <Button variant="secondary" role="combobox" aria-expanded={open} aria-label="Choose country or wine region" className="h-9 w-[8.5rem] justify-between gap-1 rounded-full px-3 lg:h-11 lg:w-56"><span className="truncate">{label}</span><ChevronDown className="size-4 shrink-0" /></Button>
+    <Button variant="secondary" role="combobox" aria-expanded={open} aria-label="Choose country or wine region" className="h-full w-[8.5rem] justify-between gap-1 rounded-full bg-[color-mix(in_srgb,var(--nav-active)_13%,transparent)] px-3 text-[var(--nav-active)] hover:bg-[color-mix(in_srgb,var(--nav-active)_20%,transparent)] lg:w-56"><span className="truncate">{label}</span><ChevronDown className="size-4 shrink-0" /></Button>
   </PopoverTrigger><PopoverContent align="start" className="w-72 max-w-[calc(100vw-32px)] p-0 shadow"><Command>
     <CommandInput placeholder="Search countries and regions…" aria-label="Search countries and regions" />
     <CommandList><CommandEmpty>No locations found.</CommandEmpty>

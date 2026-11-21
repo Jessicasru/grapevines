@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { motion, useReducedMotion } from "framer-motion";
 import { Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, currentUserId, useAuth } from "@/lib/auth";
-import { distanceKm, savesQuery, searchWineries, villageOf, type Region, type SaveStatus, type Winery } from "@/lib/wine";
+import { distanceKm, searchWineries, villageOf, type Region, type Save, type SaveStatus, type Winery } from "@/lib/wine";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function SearchBox({ wineries, onPick, onAdd }: { wineries: Winery[]; onPick: (w: Winery) => void; onAdd: (name: string) => void }) {
@@ -15,13 +15,13 @@ export function SearchBox({ wineries, onPick, onAdd }: { wineries: Winery[]; onP
   const results = searchWineries(wineries, q);
   const show = open && q.trim().length > 0;
   return (
-    <div className="relative min-w-0 flex-1" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>
+    <div className="relative h-full min-w-0 flex-1" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground lg:size-5" />
       <input
         type="search" value={q} placeholder="Search wineries" aria-label="Search wineries"
         onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         onKeyDown={(e) => { if (e.key === "Escape") { setQ(""); setOpen(false); } if (e.key === "Enter" && results[0]) { onPick(results[0]); setQ(""); setOpen(false); } }}
-        className="h-9 w-full min-w-0 rounded-full bg-secondary pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-11 lg:pl-10 lg:text-base"
+        className="h-full w-full min-w-0 rounded-full bg-transparent pl-9 pr-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pl-10"
       />
       {show && (
         <div className="map-glass absolute left-0 right-0 top-full z-20 mt-3 min-w-[16rem] overflow-hidden rounded-lg shadow">
@@ -100,22 +100,31 @@ export function AddWineryPanel({ initialName, picked, regions, onCancel, onCreat
   );
 }
 
-export function MyWineriesDrawer({ open, onOpenChange, onPick }: { open: boolean; onOpenChange: (o: boolean) => void; onPick: (id: string, regionId: string) => void }) {
-  const { user, profile, openProfile, signOut } = useAuth();
-  const saves = useQuery({ ...savesQuery(user?.id ?? ""), enabled: !!user && open });
-  const list = (status: SaveStatus) => (saves.data ?? []).filter((s) => s.status === status && s.wineries);
+/** Sits under the nav bar without dimming the map. */
+function NavSheet({ label, children }: { label: string; children: React.ReactNode }) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.section aria-label={label}
+      initial={reduced ? { opacity: 0 } : { y: 48, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: reduced ? 0.15 : 0.25 }}
+      className="nav-sheet absolute inset-x-0 bottom-0 z-20 mx-auto flex max-w-xl flex-col rounded-t-lg bg-card shadow">
+      {children}
+    </motion.section>
+  );
+}
+
+export function SavedSheet({ saves, loading, onPick }: { saves: Save[]; loading: boolean; onPick: (id: string) => void }) {
   const renderList = (status: SaveStatus, empty: string) => {
-    const rows = list(status);
-    if (!rows.length) return <p className="py-8 text-center text-sm text-muted-foreground">{saves.isLoading ? "Loading…" : empty}</p>;
+    const rows = saves.filter((s) => s.status === status);
+    if (!rows.length) return <p className="py-8 text-center text-sm text-muted-foreground">{loading ? "Loading…" : empty}</p>;
     return (
       <ul className="divide-y">
         {rows.map((s) => (
           <li key={s.id}>
-            <button type="button" onClick={() => onPick(s.winery_id, s.wineries!.region_id)} className="flex w-full items-center gap-3 py-3 text-left">
-              {s.wineries!.photo_url ? <img src={s.wineries!.photo_url} alt="" className="size-12 rounded-lg object-cover" /> : <span className="size-12 rounded-lg bg-muted" />}
+            <button type="button" onClick={() => onPick(s.winery_id)} className="flex w-full items-center gap-3 py-3 text-left">
+              {s.wineries.photo_url ? <img src={s.wineries.photo_url} alt="" className="size-12 rounded-lg object-cover" /> : <span className="size-12 rounded-lg bg-muted" />}
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{s.wineries!.name}</span>
-                <span className="block truncate text-sm text-muted-foreground">{villageOf(s.wineries!)}</span>
+                <span className="block truncate font-semibold">{s.wineries.name}</span>
+                <span className="block truncate text-sm text-muted-foreground">{villageOf(s.wineries)}</span>
               </span>
             </button>
           </li>
@@ -124,26 +133,35 @@ export function MyWineriesDrawer({ open, onOpenChange, onPick }: { open: boolean
     );
   };
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="mx-auto max-h-[90dvh] max-w-xl rounded-t-lg border-0 bg-card shadow">
-        <div className="flex items-center gap-3 px-5 pb-2 pt-3">
-          <Avatar name={profile?.display_name} url={profile?.avatar_url} className="size-10" />
-          <div className="min-w-0 flex-1">
-            <DrawerTitle className="text-lg">My wineries</DrawerTitle>
-            <DrawerDescription className="truncate">{profile?.display_name}</DrawerDescription>
-          </div>
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={openProfile}>Edit profile</Button>
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={async () => { onOpenChange(false); await signOut(); }}>Sign out</Button>
+    <NavSheet label="Saved wineries">
+      <h2 className="px-5 pb-2 pt-4 text-lg font-semibold">Saved</h2>
+      <Tabs defaultValue="want_to_visit" className="flex min-h-0 flex-1 flex-col px-5">
+        <TabsList className="grid w-full shrink-0 grid-cols-2 rounded-full">
+          <TabsTrigger value="want_to_visit" className="rounded-full">Want to visit</TabsTrigger>
+          <TabsTrigger value="been_here" className="rounded-full">Been here</TabsTrigger>
+        </TabsList>
+        <TabsContent value="want_to_visit" className="min-h-0 overflow-y-auto overscroll-contain">{renderList("want_to_visit", "Nothing saved yet. Tap “Want to visit” on a winery.")}</TabsContent>
+        <TabsContent value="been_here" className="min-h-0 overflow-y-auto overscroll-contain">{renderList("been_here", "No visits yet. Tap “Been here” on a winery you’ve visited.")}</TabsContent>
+      </Tabs>
+    </NavSheet>
+  );
+}
+
+export function YouSheet({ onSignedOut }: { onSignedOut: () => void }) {
+  const { user, profile, openProfile, signOut } = useAuth();
+  return (
+    <NavSheet label="Your profile">
+      <div className="flex items-center gap-3 px-5 pb-4 pt-5">
+        <Avatar name={profile?.display_name ?? user?.email} url={profile?.avatar_url} className="size-12 text-lg" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-semibold leading-tight">{profile?.display_name ?? "Your profile"}</h2>
+          <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
         </div>
-        <Tabs defaultValue="want_to_visit" className="min-h-0 overflow-y-auto px-5 pb-8">
-          <TabsList className="grid w-full grid-cols-2 rounded-full">
-            <TabsTrigger value="want_to_visit" className="rounded-full">Want to visit</TabsTrigger>
-            <TabsTrigger value="been_here" className="rounded-full">Been here</TabsTrigger>
-          </TabsList>
-          <TabsContent value="want_to_visit">{renderList("want_to_visit", "Nothing saved yet. Tap “Want to visit” on a winery.")}</TabsContent>
-          <TabsContent value="been_here">{renderList("been_here", "No visits yet. Tap “Been here” on a winery you’ve visited.")}</TabsContent>
-        </Tabs>
-      </DrawerContent>
-    </Drawer>
+      </div>
+      <div className="grid grid-cols-2 gap-2 px-5">
+        <Button variant="secondary" className="h-11 rounded-full font-semibold" onClick={openProfile}>Edit profile</Button>
+        <Button variant="outline" className="h-11 rounded-full font-semibold" onClick={async () => { onSignedOut(); await signOut(); }}>Sign out</Button>
+      </div>
+    </NavSheet>
   );
 }
