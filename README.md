@@ -1,6 +1,6 @@
 # Grapevines
 
-Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from people who have been there.
+Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from the wine community.
 
 Live at [mygrapevines.com](https://mygrapevines.com).
 
