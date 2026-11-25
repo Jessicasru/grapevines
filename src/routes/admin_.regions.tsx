@@ -94,7 +94,7 @@ function RegionsAdmin() {
       </header>
       <div className="mx-auto w-full max-w-2xl px-4 pb-16">
         <p className="mt-2 text-sm text-muted-foreground">
-          Upload a GeoJSON FeatureCollection. Every winery within 2 km of the boundary is assigned to that region.
+          Upload a GeoJSON FeatureCollection. A winery belongs to the nearest boundary within 2 km. Outline files for each region are in the repository under data/boundaries.
         </p>
         <ul className="mt-4 space-y-3">
           {(regions.data ?? []).map((r) => (

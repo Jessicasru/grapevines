@@ -134,6 +134,34 @@
       "when": 1792914727534,
       "tag": "0018_rename_profiles_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795639699696,
+      "tag": "0019_wineries_in_every_region",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795639699697,
+      "tag": "0020_champagne_bourgogne_regions",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795644083682,
+      "tag": "0021_more_french_regions",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795644374284,
+      "tag": "0022_duplicate_review_per_region",
+      "breakpoints": true
     }
   ]
 }

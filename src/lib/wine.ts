@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { listDuplicatePairs, listDuplicateHistory } from "@/lib/duplicates.functions";
 
-export type Region = Tables<"regions">;
+/** A region without its outline, which is large; outlines come from boundariesQuery. */
+export type Region = Omit<Tables<"regions">, "boundary">;
 export type Winery = Tables<"wineries">;
 export type Recommendation = Tables<"recommendations">;
 export type SaveStatus = "want_to_visit" | "been_here";
 
-export const duplicatePairsQuery = (userId: string) => queryOptions({
-  queryKey: ["admin-duplicates", userId], queryFn: () => listDuplicatePairs(),
+export const duplicatePairsQuery = (userId: string, regionId: string) => queryOptions({
+  queryKey: ["admin-duplicates", userId, regionId], queryFn: () => listDuplicatePairs({ data: { regionId } }),
 });
 export const duplicateHistoryQuery = (userId: string) => queryOptions({
   queryKey: ["admin-duplicate-history", userId], queryFn: () => listDuplicateHistory(),
@@ -19,7 +20,10 @@ export const duplicateHistoryQuery = (userId: string) => queryOptions({
 export const regionsQuery = queryOptions({
   queryKey: ["regions"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("regions").select("*").order("name");
+    const { data, error } = await supabase
+      .from("regions")
+      .select("id, name, country, center_lat, center_lng, default_zoom, created_at")
+      .order("name");
     if (error) throw error;
     return data;
   },
