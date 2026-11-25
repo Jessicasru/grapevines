@@ -18,6 +18,12 @@ DATATOURISME_FILES = {
     "hdf": "20261125-040058/datatourisme-reg-hdf.csv",  # Hauts-de-France
     "idf": "20261125-040152/datatourisme-reg-idf.csv",  # Île-de-France
     "bfc": "20261125-035511/datatourisme-reg-bfc.csv",  # Bourgogne-Franche-Comté
+    "pdl": "20261125-040838/datatourisme-reg-pdl.csv",  # Pays de la Loire
+    "cvl": "20261125-035731/datatourisme-reg-cvl.csv",  # Centre-Val de Loire
+    "naq": "20261125-040444/datatourisme-reg-naq.csv",  # Nouvelle-Aquitaine
+    "ara": "20261125-035407/datatourisme-reg-ara.csv",  # Auvergne-Rhône-Alpes
+    "pac": "20261125-040741/datatourisme-reg-pac.csv",  # Provence-Alpes-Côte d'Azur
+    "occ": "20261125-040647/datatourisme-reg-occ.csv",  # Occitanie
 }
 
 # Beaujolais is its own region, so its appellations stay out of Bourgogne.
@@ -26,26 +32,57 @@ BEAUJOLAIS = {
     "Juliénas", "Morgon", "Moulin-à-Vent", "Régnié", "Saint-Amour",
 }
 
-# Every visitor downloads all outlines, so each should stay near the size of the Alsace
-# one (about 35,000 points). Alsace matches INAO simplified by 8 m with no gaps merged.
+# Most regions are INAO's AOC vineyard parcels, picked by INAO office ("dt") and
+# department. Only wine parcels count: the file also holds Camargue beef and a pear.
 REGIONS = {
     "bourgogne": {
         "name": "Bourgogne",
-        # Every AOC vineyard parcel in Côte-d'Or, Saône-et-Loire and Yonne, minus Beaujolais.
-        "departments": {"21", "71", "89"},
-        # Bourgogne has about 7,000 scattered parcels. Joining parcels split only by a
-        # lane (gaps under 30 m) leaves about 700 areas and adds 3% to the area.
-        "merge_gaps_metres": 15,
-        "simplify_metres": 15,
+        # Côte-d'Or and Saône-et-Loire, minus Beaujolais. The Yonne is Chablis.
+        "parcels": {"offices": {"Dijon", "Mâcon"}, "departments": {"21", "71"}, "exclude": BEAUJOLAIS},
         "datatourisme": ["bfc"],
+    },
+    "chablis": {
+        "name": "Chablis",
+        # Every vineyard in the Yonne: Chablis, and the Auxerrois, Irancy, Saint-Bris, Vézelay.
+        "parcels": {"offices": {"Dijon"}, "departments": {"89"}},
+        "datatourisme": ["bfc"],
+    },
+    "loire": {
+        "name": "Loire",
+        # Muscadet to Sancerre, and the upper Loire (Saint-Pourçain, Côte roannaise, Auvergne).
+        "parcels": {"offices": {"Angers", "Tours"}, "departments": {
+            "03", "18", "36", "37", "41", "42", "44", "45", "49", "58", "63", "72", "79", "85", "86"}},
+        "datatourisme": ["pdl", "cvl", "naq", "bfc", "ara"],
+    },
+    "bordeaux": {
+        "name": "Bordeaux",
+        # The Gironde. Bergerac, Duras and Buzet share INAO's Bordeaux office but are South-West.
+        "parcels": {"offices": {"Bordeaux"}, "departments": {"33"}},
+        "datatourisme": ["naq"],
+    },
+    "rhone": {
+        "name": "Rhône",
+        # North and south, with Costières de Nîmes, the Diois, Ventoux and Luberon.
+        "parcels": {"offices": {"Avignon", "Valence"}},
+        "datatourisme": ["ara", "pac", "occ"],
+    },
+    "languedoc": {
+        "name": "Languedoc",
+        # Aude, Hérault and Gard (plus Camargue sand wines), without Roussillon.
+        "parcels": {"offices": {"Montpellier", "Narbonne"}, "departments": {"11", "13", "30", "34"}},
+        "datatourisme": ["occ", "pac"],
+    },
+    "provence": {
+        "name": "Provence",
+        # INAO has no parcel map for Cassis or Bellet.
+        "parcels": {"offices": {"La Valette du Var"}},
+        "datatourisme": ["pac"],
     },
     "champagne": {
         "name": "Champagne",
         # INAO has no parcel map for Champagne, so we use OpenStreetMap vineyards
         # inside INAO's geographic area for the Champagne appellation.
         "inao_area_denomination": 55,
-        "merge_gaps_metres": 0,
-        "simplify_metres": 8,
         "datatourisme": ["gde", "hdf", "idf"],
         # Houses are named "Champagne <producer>". The Aisne lists them as shops, not tastings.
         "datatourisme_shop_prefix": "champagne ",
