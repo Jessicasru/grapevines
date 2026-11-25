@@ -8,8 +8,12 @@ export type DuplicatePreview = { id: string; pairs: DuplicatePair[] };
 export type MergeEntry = { id: string; kept_id: string; removed_id: string; mode: string; created_at: string; wineries: Winery[] };
 export type DismissedEntry = { winery_a: Winery; winery_b: Winery; reason: string; created_at: string };
 export type DuplicateHistory = { merged: MergeEntry[]; dismissed: DismissedEntry[]; last_run?: { dismissed: number; merged: number; manual_remaining: number } | null };
-export const listDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
-  const { data, error } = await context.supabase.rpc("winery_duplicate_candidates");
+// One region at a time: over every region, the search runs too long. ("as never" until
+// Lovable regenerates the database types with the new region argument.)
+const regionSchema = z.object({ regionId: z.string().uuid() });
+export const listDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => regionSchema.parse(input)).handler(async ({ data: input, context }) => {
+  const { data, error } = await context.supabase.rpc("winery_duplicate_candidates", { _region_id: input.regionId } as never);
   if (error) throw new Error(error.message);
   return data as unknown as DuplicatePair[];
 });
@@ -19,8 +23,9 @@ export const dismissDuplicatePair = createServerFn({ method: "POST" }).middlewar
     const { error } = await context.supabase.rpc("dismiss_winery_duplicate", { _a: data.a, _b: data.b });
     if (error) throw new Error(error.message);
   });
-export const previewDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
-  const { data, error } = await context.supabase.rpc("preview_winery_duplicates");
+export const previewDuplicatePairs = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => regionSchema.parse(input)).handler(async ({ data: input, context }) => {
+  const { data, error } = await context.supabase.rpc("preview_winery_duplicates", { _region_id: input.regionId } as never);
   if (error) throw new Error(error.message);
   return data as unknown as DuplicatePreview;
 });

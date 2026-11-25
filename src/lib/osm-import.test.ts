@@ -2,45 +2,49 @@ import { describe, expect, it } from "vitest";
 import { importAreas, overpassQuery } from "./osm-import";
 
 describe("OpenStreetMap import areas", () => {
-  it("covers each outline's box plus a margin", () => {
-    const areas = importAreas([
-      {
-        geojson: {
-          type: "MultiPolygon",
-          coordinates: [
-            [
-              [
-                [7.1, 47.8],
-                [7.9, 47.8],
-                [7.9, 49.0],
-                [7.1, 47.8],
-              ],
-            ],
+  it("fits a box with a margin around the points in each tile", () => {
+    const areas = importAreas({
+      type: "MultiPolygon",
+      coordinates: [
+        [
+          [
+            [7.1, 47.8],
+            [7.2, 47.8],
+            [7.2, 47.9],
+            [7.1, 47.8],
           ],
-        },
-      },
-      {
-        geojson: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [3.3, 46.2],
-              [5.0, 46.2],
-              [5.0, 48.0],
-              [3.3, 46.2],
-            ],
+        ],
+        [
+          [
+            [3.6, 46.2],
+            [3.7, 46.2],
+            [3.7, 46.3],
+            [3.6, 46.2],
           ],
-        },
-      },
-    ]);
+        ],
+      ],
+    });
     expect(areas).toEqual([
-      { south: 47.77, west: 7.07, north: 49.03, east: 7.93 },
-      { south: 46.17, west: 3.27, north: 48.03, east: 5.03 },
+      { south: 47.77, west: 7.07, north: 47.93, east: 7.23 },
+      { south: 46.17, west: 3.57, north: 46.33, east: 3.73 },
     ]);
   });
 
+  it("splits a long region into tiles instead of one large box", () => {
+    const areas = importAreas({
+      type: "LineString",
+      coordinates: [
+        [-1.5, 47.2],
+        [0.5, 47.3],
+        [2.8, 47.3],
+      ],
+    });
+    expect(areas).toHaveLength(3);
+    expect(Math.max(...areas.map((a) => a.east - a.west))).toBeLessThan(0.1);
+  });
+
   it("skips outlines without coordinates", () => {
-    expect(importAreas([{ geojson: { type: "GeometryCollection", geometries: [] } }])).toEqual([]);
+    expect(importAreas({ type: "GeometryCollection", geometries: [] })).toEqual([]);
   });
 
   it("asks for wineries in every area at once", () => {

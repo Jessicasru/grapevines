@@ -10,8 +10,8 @@ export type Winery = Tables<"wineries">;
 export type Recommendation = Tables<"recommendations">;
 export type SaveStatus = "want_to_visit" | "been_here";
 
-export const duplicatePairsQuery = (userId: string) => queryOptions({
-  queryKey: ["admin-duplicates", userId], queryFn: () => listDuplicatePairs(),
+export const duplicatePairsQuery = (userId: string, regionId: string) => queryOptions({
+  queryKey: ["admin-duplicates", userId, regionId], queryFn: () => listDuplicatePairs({ data: { regionId } }),
 });
 export const duplicateHistoryQuery = (userId: string) => queryOptions({
   queryKey: ["admin-duplicate-history", userId], queryFn: () => listDuplicateHistory(),

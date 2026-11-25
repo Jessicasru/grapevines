@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { Geometry } from "geojson";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { addCounts, batches } from "@/lib/import-batches";
 import { importAreas, overpassQuery } from "@/lib/osm-import";
 
 const SERVERS = [
@@ -69,17 +71,30 @@ async function loadElements(query: string): Promise<{ elements: unknown[]; serve
 
 export type ImportSummary = { created: number; updated: number; skipped_no_name: number; skipped_outside: number; server: string };
 
+type Counts = Omit<ImportSummary, "server">;
+
+/** One region at a time: a query for every region at once would cover much of France. */
 export const importWineriesFromOsm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) => z.object({ regionId: z.string().uuid() }).parse(input))
+  .handler(async ({ data: input, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("is_admin");
     if (!isAdmin) throw new Error("Not allowed");
     const { data: boundaries, error: boundaryError } = await context.supabase.rpc("region_boundaries");
     if (boundaryError) throw new Error(boundaryError.message);
-    const areas = importAreas((boundaries ?? []) as unknown as { geojson: Geometry }[]);
-    if (!areas.length) throw new Error("Upload a region boundary first.");
-    const { elements, server } = await loadElements(overpassQuery(areas));
-    const { data, error } = await context.supabase.rpc("import_osm_wineries", { _elements: elements as never });
-    if (error) throw new Error(error.message);
-    return { ...(data as unknown as Omit<ImportSummary, "server">), server };
+    const outline = ((boundaries ?? []) as unknown as { id: string; geojson: Geometry }[]).find(
+      (b) => b.id === input.regionId,
+    );
+    if (!outline) throw new Error("Upload this region's boundary first.");
+    const { elements, server } = await loadElements(overpassQuery(importAreas(outline.geojson)));
+    const results: Counts[] = [];
+    for (const batch of batches(elements)) {
+      const { data, error } = await context.supabase.rpc("import_osm_wineries", {
+        _elements: batch as never,
+      });
+      if (error) throw new Error(error.message);
+      results.push(data as unknown as Counts);
+    }
+    const empty = { created: 0, updated: 0, skipped_no_name: 0, skipped_outside: 0 };
+    return { ...addCounts([empty, ...results]), server };
   });
