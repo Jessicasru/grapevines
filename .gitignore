@@ -30,3 +30,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Downloads for the data builds in scripts/data
+data/.cache/
