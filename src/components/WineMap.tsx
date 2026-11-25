@@ -30,7 +30,7 @@ export function WineryPairMap({ wineries }: { wineries: [Winery, Winery] }) {
       if (cancelled || !container.current) return;
       mb.accessToken = (import.meta.env['VITE_MAPBOX_TOKEN'] as string | undefined) ?? PUBLIC_TOKEN;
       map = new mb.Map({ container: container.current, style: "mapbox://styles/rulandjs/cmv1eyamu005x01sgb49hdpjg", attributionControl: false, center: [wineries[0].longitude, wineries[0].latitude], zoom: 16 });
-      map.addControl(new mb.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors · DATAtourisme" }));
+      map.addControl(new mb.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors · Overture Maps Foundation · DATAtourisme · INAO" }));
       const fit = () => {
         if (!map) return;
         map.resize();
@@ -183,7 +183,7 @@ export function WineMap({ location, onLocationSelect, onZoomChange, regions = []
       map.addControl(
         new mapboxgl.AttributionControl({
           compact: true,
-          customAttribution: "© OpenStreetMap contributors · DATAtourisme",
+          customAttribution: "© OpenStreetMap contributors · Overture Maps Foundation · DATAtourisme · INAO",
         }),
         "bottom-right",
       );

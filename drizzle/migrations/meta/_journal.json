@@ -134,6 +134,20 @@
       "when": 1792914727534,
       "tag": "0018_rename_profiles_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795639699696,
+      "tag": "0019_wineries_in_every_region",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795639699697,
+      "tag": "0020_champagne_bourgogne_regions",
+      "breakpoints": true
     }
   ]
 }

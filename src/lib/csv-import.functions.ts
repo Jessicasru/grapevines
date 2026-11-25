@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { csvSourceSchema, parseWineryCsv, type CsvImportSummary } from "@/lib/csv-import";
 
-export const importAlsaceFromCsv = createServerFn({ method: "POST" })
+export const importWineriesFromCsv = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ source: csvSourceSchema, csv: z.string().min(1) }).parse(input))
   .handler(async ({ data, context }) => {

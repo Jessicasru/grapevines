@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { csvSourceSchema, parseWineryCsv, type CsvSource, type CsvImportSummary } from "@/lib/csv-import";
-import { importAlsaceFromCsv } from "@/lib/csv-import.functions";
+import { importWineriesFromCsv } from "@/lib/csv-import.functions";
 
 export function CsvImporter() {
   const [source, setSource] = useState<CsvSource>("datatourisme");
@@ -15,7 +15,7 @@ export function CsvImporter() {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [summary, setSummary] = useState<CsvImportSummary | null>(null);
-  const importCsv = useServerFn(importAlsaceFromCsv);
+  const importCsv = useServerFn(importWineriesFromCsv);
   const qc = useQueryClient();
 
   async function run() {
@@ -36,7 +36,7 @@ export function CsvImporter() {
     }
   }
 
-  const rows: [string, number][] = summary ? [["Created", summary.created], ["Updated", summary.updated], ["Skipped (outside Alsace)", summary.skipped_outside]] : [];
+  const rows: [string, number][] = summary ? [["Created", summary.created], ["Updated", summary.updated], ["Skipped (outside every region)", summary.skipped_outside]] : [];
   return (
     <section className="mt-10 border-t border-border pt-6" aria-labelledby="csv-import-heading">
       <h2 id="csv-import-heading" className="text-xl font-bold">CSV import</h2>

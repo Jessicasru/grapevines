@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { Geometry } from "geojson";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { importAreas, overpassQuery } from "@/lib/osm-import";
 
-const BBOX = "47.77,7.07,49.08,7.97";
-const QUERY = `[out:json][timeout:120];(node["craft"="winery"](${BBOX});way["craft"="winery"](${BBOX});relation["craft"="winery"](${BBOX});node["shop"="winery"](${BBOX});way["shop"="winery"](${BBOX}););out center tags;`;
 const SERVERS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
@@ -23,14 +23,14 @@ function parseRetryAfter(v: string | null): number | null {
   return Number.isNaN(d) ? null : Math.max(0, (d - Date.now()) / 1000);
 }
 
-async function fetchOverpass(url: string) {
+async function fetchOverpass(url: string, query: string) {
   let res: Response;
   try {
     res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": USER_AGENT },
-      body: "data=" + encodeURIComponent(QUERY),
-      signal: AbortSignal.timeout(130_000),
+      body: "data=" + encodeURIComponent(query),
+      signal: AbortSignal.timeout(190_000),
     });
   } catch (e) {
     const timeout = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
@@ -45,13 +45,13 @@ async function fetchOverpass(url: string) {
   }
 }
 
-async function loadElements(): Promise<{ elements: unknown[]; server: string }> {
+async function loadElements(query: string): Promise<{ elements: unknown[]; server: string }> {
   const errors: string[] = [];
   for (let round = 0; round <= ROUND_WAITS.length; round++) {
     let retryAfter: number | null = null;
     for (const url of SERVERS) {
       try {
-        return { elements: await fetchOverpass(url), server: url };
+        return { elements: await fetchOverpass(url, query), server: url };
       } catch (e) {
         const err = e instanceof ServerError ? e : new ServerError(String(e), null);
         console.error("Overpass failed", round, url, err.message);
@@ -69,12 +69,16 @@ async function loadElements(): Promise<{ elements: unknown[]; server: string }> 
 
 export type ImportSummary = { created: number; updated: number; skipped_no_name: number; skipped_outside: number; server: string };
 
-export const importAlsaceFromOsm = createServerFn({ method: "POST" })
+export const importWineriesFromOsm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("is_admin");
     if (!isAdmin) throw new Error("Not allowed");
-    const { elements, server } = await loadElements();
+    const { data: boundaries, error: boundaryError } = await context.supabase.rpc("region_boundaries");
+    if (boundaryError) throw new Error(boundaryError.message);
+    const areas = importAreas((boundaries ?? []) as unknown as { geojson: Geometry }[]);
+    if (!areas.length) throw new Error("Upload a region boundary first.");
+    const { elements, server } = await loadElements(overpassQuery(areas));
     const { data, error } = await context.supabase.rpc("import_osm_wineries", { _elements: elements as never });
     if (error) throw new Error(error.message);
     return { ...(data as unknown as Omit<ImportSummary, "server">), server };
