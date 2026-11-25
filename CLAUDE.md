@@ -4,7 +4,7 @@
 
 Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from the wine community. It is not a travel journal. Recommendations are public to everyone.
 
-Live at mygrapevines.com. Current focus: Alsace only. Other regions come after Alsace is complete.
+Live at mygrapevines.com. Current focus: Alsace, Champagne and Bourgogne.
 
 ## How to work in this repo
 
@@ -72,6 +72,8 @@ review. It records why the code is built the way it is.
 - `drizzle/migrations/` — one SQL file per database change.
   `drizzle/schema.ts` is empty on purpose.
 - `supabase/config.toml` — the Supabase project ID.
+- `data/` — region outlines and winery files to upload in /admin, with their
+  sources. `scripts/data/` builds them (Python). See `data/README.md`.
 
 ### From Supabase to the map
 
