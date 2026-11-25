@@ -4,7 +4,8 @@
 
 Grapevines (working name) helps wine lovers plan trips to wine regions: a map of visitable wineries, with honest recommendations from the wine community. It is not a travel journal. Recommendations are public to everyone.
 
-Live at mygrapevines.com. Current focus: Alsace, Champagne and Bourgogne.
+Live at mygrapevines.com. Current focus: Alsace, Champagne, Bourgogne, Chablis, Loire, Bordeaux, Rhône,
+Languedoc and Provence.
 
 ## How to work in this repo
 
